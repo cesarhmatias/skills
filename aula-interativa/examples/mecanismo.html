@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Exemplo executável · Conservação de quantidade</title><link rel="stylesheet" href="../templates/player.css"><style>
+.reservoirs{display:flex;gap:2rem;justify-content:center;align-items:flex-end;margin:1.5rem 0}.reservoir{width:clamp(95px,25vw,190px);text-align:center}.tank{height:150px;border:2px solid #86a2c5;border-top:0;position:relative;overflow:hidden;background:#f2f6fc}.water{position:absolute;bottom:0;width:100%;background:#4c85dc}.reservoir h2{font-size:1.1rem;margin:.7rem 0}.reading{font-size:1.4rem;font-variant-numeric:tabular-nums}.totals{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;border-top:1px solid var(--line);padding-top:1rem}.totals p{margin:.3rem 0;line-height:1.7}.annotation{text-align:center;min-height:2rem;font-size:1rem;color:var(--muted)}.exercise{max-width:65ch;line-height:1.8;font-size:1.1rem}
+</style></head><body><div id="lesson"></div><script src="../templates/motion.js"></script><script src="../templates/player.js"></script><script>
+const M = LessonMotion;
+const scenes = [{
+ id:'transferencia', title:'Para onde foi a quantidade?', chapter:'Modelo · Conservação',
+ description:'Um modelo sintético com 20 unidades em A. A transfere para B. Altere a quantidade e observe o que permanece igual. Os volumes desenhados representam quantidade, sem simular hidrodinâmica.',
+ initialInputs:{amount:8,loss:'0'},
+ controls:[{key:'amount',type:'range',label:'Quantidade a transferir',min:0,max:20,step:1},{key:'loss',type:'select',label:'Fração que sai dos reservatórios',options:[{value:'0',label:'0% · sem perda'},{value:'0.2',label:'20% · sai do sistema observado'}]}],
+ auditCases:[{id:'zero',inputs:{amount:0,loss:'0'}},{id:'limite',inputs:{amount:20,loss:'0'}},{id:'perda',inputs:{amount:10,loss:'0.2'}}],
+ steps:[{id:'inicial',label:'Antes da transferência',duration:0},{id:'transferir',label:'A transfere para B',duration:1.8},{id:'comparar',label:'Conferir a quantidade total',duration:.65}],
+ render({state,time,motion:M}){
+  const fraction=state.step===0?0:state.step===1?M.segment(time,.25,1.45,M.linear):1;
+  const moved=state.inputs.amount*fraction, outside=moved*Number(state.inputs.loss), a=20-moved,b=moved-outside;
+  const f=v=>M.number(v,{digits:2});
+  return {html:`<div class="annotation" data-qa-text="transfer-progress">Transferido: ${f(moved)} de ${f(state.inputs.amount)} unidades</div><div class="reservoirs">${[['A',a],['B',b]].map(([id,value])=>`<div class="reservoir"><div class="tank" aria-hidden="true"><div class="water" style="height:${value/20*100}%"></div></div><h2 data-qa-text="label-${id}">Reservatório ${id}</h2><p class="reading lesson-value" data-qa-text="value-${id}" data-value="${value}">${f(value)} un.</p></div>`).join('')}</div><div class="totals"><div><p data-qa-text="inside-label">Total nos reservatórios</p><p class="reading lesson-value" data-qa-text="inside-total" data-value="${a+b}">${f(a+b)} un.</p></div><div><p data-qa-text="outside-label">Fora dos reservatórios</p><p class="reading lesson-value" data-qa-text="outside-total" data-value="${outside}">${f(outside)} un.</p></div></div><p class="lesson-note" data-qa-text="closed-total">A + B + fora = ${f(a+b+outside)} unidades. A fronteira do sistema define qual total está sendo comparado.</p>`,caption:state.step===0?'A contém 20 unidades e B está vazio.':moved<state.inputs.amount?'A perde a quantidade transferida; B recebe a parcela que permanece nos reservatórios.':outside>0?'O total nos reservatórios diminuiu; ao incluir a quantidade que saiu, o total continua 20.':'A e B mudaram; a soma continua sendo 20.'};
+ }
+},{
+ id:'previsao',title:'Preveja antes de conferir',chapter:'Aplicação · Mesmo princípio, outra ação',
+ description:'A começa com 20 unidades e transfere 8 para B, sem perda. Escolha quanto deve restar em A e avance uma etapa para confrontar sua previsão.',
+ initialInputs:{prediction:''},
+ controls:[{key:'prediction',type:'select',label:'Quanto resta em A?',options:[{value:'',label:'Escolha uma previsão'},{value:'12',label:'12 unidades'},{value:'8',label:'8 unidades'},{value:'20',label:'20 unidades'}]}],
+ auditCases:[{id:'correta',inputs:{prediction:'12'}},{id:'hipotese-errada',inputs:{prediction:'8'}}],
+ steps:[{id:'prever',label:'Faça uma previsão',duration:0},{id:'conferir',label:'Confronte o resultado',duration:.6}],
+ render({state,time}){
+  const reveal=state.step===1&&time>=.6,answer=state.inputs.prediction;
+  const feedback=!answer?'Escolha uma previsão para receber uma explicação.':answer==='12'?'Correto: A perde 8 das 20 unidades, então resta 20 − 8 = 12. B recebe as mesmas 8; 12 + 8 = 20.':answer==='8'?'8 é a quantidade transferida para B, não a que resta em A. O saldo de A é 20 − 8 = 12.':'20 era o saldo inicial. Como 8 saíram de A, esse saldo muda para 12. A soma de A e B continua 20.';
+  return {html:`<div class="exercise"><p data-qa-text="exercise-start">A: 20 unidades → transferir 8 → B</p><p data-qa-text="exercise-equation">Quanto vale 20 − 8?</p>${reveal?`<p class="lesson-feedback ${answer&&answer!=='12'?'wrong':''}" data-qa-text="feedback">${M.escape(feedback)}</p>`:'<p class="lesson-note" data-qa-text="exercise-prompt">Sua previsão será confrontada ao avançar uma etapa.</p>'}</div>`,caption:reveal?'Explique a diferença entre quantidade transferida e saldo restante.':'Escolha uma resposta; depois use Etapa →.'};
+ }
+}];
+window.lesson=LessonPlayer.create({root:'#lesson',title:'Exemplo de autoria · duas cenas',slides:scenes});
+</script></body></html>

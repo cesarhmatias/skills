@@ -1,81 +1,84 @@
 ---
 name: aula-interativa
-description: Cria aulas em HTML com slides interativos, exemplos e animações que explicam mecanismos, sobre qualquer assunto. Use quando a pessoa quiser aprender um conteúdo nesse formato ou transformar material didático em uma aula visual. A entrada pede apenas idioma, assunto e profundidade ou quantidade de slides.
+description: Produz aulas em slides HTML sobre qualquer assunto, com exemplos, exercícios, cenas animadas determinísticas e revisão visual quadro a quadro via Playwright. Use quando o usuário quiser aprender nesse formato ou transformar material em uma aula interativa. Pergunta apenas idioma, assunto e profundidade ou quantidade de slides; executa pesquisa, roteiro, design, motion, captura, correção e entrega com os recursos incluídos.
 ---
 
 # Aula interativa
 
-Transforme um assunto em uma aula HTML navegável e autocontida. O objetivo é a pessoa conseguir explicar ou aplicar o conteúdo, com exemplos e participação. Adapte a representação ao assunto: ferramentas, matemática, história, processos ou outros temas.
+Uma entrada simples deve acionar uma produção completa. Entregue uma aula utilizável: o aluno consegue seguir o mecanismo, manipular um exemplo e aplicar o conceito. Não entregue apenas um resumo ilustrado ou um plano de slides.
 
-## Entrada: três perguntas
+## Entrada: somente três perguntas
 
-Pergunte somente o que ainda não foi respondido no pedido ou nesta conversa:
+Reutilize respostas explícitas do pedido e da conversa. Não pergunte novamente o que já foi respondido. Se faltar idioma, pergunte-o antes das demais perguntas e traduza o restante para a resposta escolhida.
 
-1. **Qual idioma? / Which language?** Português, English, Español ou outro. Se faltar, pergunte primeiro; traduza as perguntas seguintes para o idioma escolhido.
-2. **O que você quer aprender hoje?** Aceite um tema, pergunta, problema ou material fornecido.
-3. **Qual profundidade você quer?**
-   - **1 — Pouca:** visão geral, conceitos centrais e um exemplo acompanhado; normalmente 6–8 slides.
-   - **2 — Média:** funcionamento, exemplos, aplicação e uma variação ou falha; normalmente 12–16 slides.
-   - **3 — Muita:** mecanismos internos, aplicações, limites, alternativas e exercícios de transferência; normalmente 20–28 slides.
+1. **Qual idioma? / Which language?** Português, English, Español ou outro.
+2. **O que você quer aprender hoje?** Aceite tema, problema, pergunta, ferramenta ou material.
+3. **Qual profundidade?** 1 — pouca, 2 — média, 3 — muita. Aceite também uma quantidade exata de slides na mesma resposta.
 
-Na terceira pergunta, aceite também uma quantidade exata de slides. As faixas são referências, não cotas de preenchimento. Respeite um total informado, incluindo abertura e fechamento quando existirem, e ajuste o escopo. Não pergunte quantidade e profundidade separadamente. Se a pessoa delegar a escolha, use o nível 2.
+| Escolha | Escopo de referência | Faixa usual, não cota |
+|---|---|---|
+| 1 | Modelo central, exemplo acompanhado, aplicação curta | 6–8 slides |
+| 2 | Mecanismo, exemplos, aplicação e variação | 12–16 slides |
+| 3 | Mecanismos internos, casos, limites, operação e transferência quando pertinentes | 20–28 slides |
 
-Depois dessas respostas, faça as escolhas de produção e construa a aula. Não acrescente um questionário de estética, currículo, narração ou plataforma. Use o contexto disponível para ajustar o nível; profundidade curta não significa aluno iniciante. Se uma ambiguidade impedir identificar o assunto, peça somente o esclarecimento necessário. Não execute a entrada se o pedido for apenas editar a própria skill.
+Respeite uma quantidade exata, contando abertura e fechamento quando usados. Profundidade não é conhecimento prévio: não trate um profissional experiente como iniciante por ele escolher uma aula curta. Se o usuário delegar a escolha, use 2. Não acrescente um questionário de estética, plataformas, áudio ou currículo. Uma ambiguidade que impeça identificar o assunto admite um esclarecimento específico. Não execute a entrada quando a tarefa for editar esta skill.
 
-## Planejamento e fontes
+## Recursos: leia no momento indicado
 
-- Defina o resultado em termos observáveis: explicar, comparar, resolver, implementar ou operar. Delimite o que cabe na profundidade escolhida.
-- Reaproveite conhecimentos prévios conhecidos. Quando forem desconhecidos, ofereça pré-requisitos em explicações opcionais sem novas perguntas de nivelamento.
-- Pesquise antes de ensinar. Prefira fontes primárias e documentação oficial; verifique informações atuais de software e procedimentos. Material fornecido pode orientar o currículo; evite reproduzir extensamente conteúdo protegido.
-- Organize conceitos por dependência. Uma trilha de curso vira um capítulo; uma unidade de raciocínio vira um slide. Não comprima uma trilha inteira em uma tela densa.
-- Planeje internamente para cada slide: objetivo, ponto de partida, demonstração, estados da cena, interação quando útil, conclusão e fonte. Não exiba essas fichas como conteúdo da aula nem peça aprovação de cada uma.
+| Quando | Leitura / recurso obrigatório | Resultado esperado |
+|---|---|---|
+| Depois da entrada | [Didática](references/01-didatica.md) | Objetivos, pré-requisitos e progressão |
+| Ao pesquisar | [Fontes e interfaces](references/02-fontes-e-interfaces.md) | Evidências, versões e demonstrações honestas |
+| Antes de desenhar | [Roteiro de cenas](references/03-roteiro-de-cenas.md) | Beats, estados, exemplos e perguntas |
+| Antes de compor frames | [Direção visual](references/04-direcao-visual.md) | Tokens, hierarquia, geometria e layouts |
+| Antes de animar | [Motion](references/05-motion.md) e [Receitas](references/06-receitas-motion.md) | Timing, easing, continuidade e mecanismos |
+| Ao implementar | [Runtime e HTML](references/07-runtime-html.md) | Player, render puro e interações |
+| Antes de entregar | [Captura e revisão](references/08-captura-e-revisao.md) | Frames, testes, inspeção e reparos |
+| Para julgar qualidade | [Falhas e critérios](references/09-criterios-e-falhas.md) | Critérios observáveis de aceitação |
 
-## Didática
+As referências contêm decisões e procedimentos; os scripts executam verificações. Ler uma referência ou passar um script não equivale a fazer revisão visual.
 
-Use uma progressão flexível: problema e contexto → modelo → mecanismo → exemplo acompanhado → variação → aplicação → caso novo. Ajuste ao assunto; nem toda etapa precisa de um slide próprio.
+## Pipeline de produção
 
-Escolha um exemplo concreto e faça-o evoluir. Acrescente condições que justifiquem os próximos conceitos. Inclua contraexemplos e limites quando ajudarem a distinguir ideias. Declare onde uma analogia deixa de representar o mecanismo real.
+1. **Preparar.** Verifique as ferramentas com `node scripts/check_env.mjs`. Use o runtime já disponível no ambiente antes de instalar dependências. Leia [runtime](references/07-runtime-html.md) para os caminhos portáveis. Se algo faltar, procure uma alternativa disponível; informe uma limitação concreta se continuar impossível.
+2. **Pesquisar e estruturar.** Defina resultados observáveis, reúna fontes e desenhe o mapa de dependências. Use o contexto real do aluno. Produza internamente `brief.md`, `sources.json` e `curriculum.json` no diretório de trabalho.
+3. **Roteirizar.** Especifique cenas por estado, causa, efeito, tempo e interação. As etapas têm nomes próprios e quantidade variável. Registre os momentos em que texto, desenho e feedback devem concordar. Não force quatro etapas em toda cena.
+4. **Desenhar.** Componha os estados inicial, intermediários importantes e final de cada cena. Meça os textos. Escolha layouts que sirvam ao assunto e uma linguagem visual consistente. Revise frames densos antes de interpolar.
+5. **Implementar motion.** Use `templates/motion.js` para easing, trajetórias e números ou implemente equivalentes puros. Faça o movimento explicar o mecanismo; a mera entrada de caixas não substitui a demonstração. Siga as receitas correspondentes.
+6. **Implementar o player.** Use `templates/player.js` e `templates/player.css`, adaptando a composição, com `examples/mecanismo.html` como exemplo executável. Mantenha a API de captura documentada em [runtime](references/07-runtime-html.md). Navegar uma etapa deve parar nela; reproduzir uma cena pode percorrer suas etapas e deve parar antes do próximo slide.
+7. **Revisar em ciclos.** Capture estados de todos os slides e todas as transições com `scripts/capture.mjs`. Gere folhas de contato com `scripts/contact_sheet.mjs`. Rode `scripts/audit.mjs`; inspecione as folhas e os frames suspeitos. Corrija, recapture os trechos alterados e atualize a evidência. O relatório deve corresponder ao hash do HTML entregue.
+8. **Empacotar e entregar.** Gere HTML autocontido com `scripts/pack.mjs` quando tiver usado arquivos locais. Abra e teste o arquivo final, inclusive offline. Entregue o HTML e apenas os recursos necessários ao aluno. Guarde roteiros, frames e relatórios fora dos entregáveis.
 
-Alterne demonstração e participação: observar → prever → experimentar → explicar. Dê feedback com o motivo da resposta. Em aulas curtas, inclua ao menos uma oportunidade de aplicar o conceito. Em aulas profundas, reduza gradualmente a ajuda e termine com um caso diferente do exemplo acompanhado.
+Não peça aprovação de cada roteiro ou keyframe. Avance dentro do escopo autorizado; dúvidas estéticas comuns são decisões de produção. Audio, vídeo, 3D e contas externas só entram se ajudarem o objetivo e estiverem no escopo. A aula funciona sem som por padrão.
 
-Escolha interações pelo objetivo: variar parâmetros, ordenar etapas, comparar cenários, localizar uma falha, completar uma solução ou tomar uma decisão. Não force código, quizzes ou simulações em todos os temas. História e assuntos interpretativos exigem distinguir evidência, interpretação e incerteza.
+## Invariantes de execução
 
-## Software: conceito, interface e resultado
+- O mesmo slide, etapa, tempo e entradas produzem o mesmo frame, inclusive buscando fora de ordem.
+- Fonte, imagens e recursos carregam antes de `lesson.ready`. Um recurso necessário que falhou deve ser informado; não declare prontidão silenciosa.
+- O modelo determina texto, cores, estados, equações e feedback. Não mantenha uma legenda fixa que contradiz a simulação escolhida.
+- Voltar ou reiniciar não depende de reproduzir etapas anteriores. Inputs têm defaults explícitos; `seek` não herda entradas ocultas de outra captura.
+- A timeline do conteúdo não depende de transições CSS, relógio real, rede ou aleatoriedade sem seed. A reprodução só converte tempo do player em tempo local.
+- Dados reais, capturas reais, interfaces reconstruídas e pseudocódigo recebem rótulos corretos. Identifique versão e data de consulta onde a operação depende delas.
+- Interações exigem consequência e feedback. Um formulário sem avaliação, uma animação sem significado ou uma tabela estática com botão de play não contam como demonstração.
+- Conteúdo correto com layout ruim exige reparo. Layout bonito com explicação enganosa também exige reparo.
 
-Conecte o modelo mental à operação: intenção → onde clicar → ação → resultado esperado → como verificar. Mostre trechos de código junto do comportamento que explicam, quando apropriado.
+## Comandos de referência
 
-Identifique a versão demonstrada e a data de consulta. Verifique controles e percursos na UI usando documentação oficial, capturas ou uma instalação acessível. Explique diferenças entre versões quando verificadas e relevantes. Não chame uma versão de atual sem conferir.
+Execute a partir da pasta desta skill ou use caminhos absolutos para seus scripts. `lesson.html` representa o HTML que está sendo produzido, não o exemplo incluído.
 
-Prefira capturas reais quando a interface exata importar. Identifique interfaces reconstruídas como simulações e procedimentos não verificados como tal. Diferencie exemplos executados, pseudocódigo e animações conceituais. Não invente controles, resultados ou screenshots. Demonstrações em contas reais continuam sujeitas à autorização do usuário; use ambiente local isolado ou simulação identificada quando apropriado.
+```bash
+node scripts/check_env.mjs --channel chrome
+node scripts/capture.mjs lesson.html --out work/qa/keyframes --mode keyframes --channel chrome
+node scripts/capture.mjs lesson.html --out work/qa/motion --mode motion --fps 30 --channel chrome
+node scripts/contact_sheet.mjs work/qa/motion/manifest.json
+node scripts/audit.mjs lesson.html --capture work/qa/motion/manifest.json --out work/qa/audit.json --channel chrome
+node scripts/pack.mjs source/lesson.html --out outputs/lesson.html
+```
 
-## Padrão visual e motion design
+O canal é opcional: sem `--channel`, usa Chromium do Playwright. Os scripts aceitam `LESSON_NODE_MODULES` para dependências já instaladas. Consulte a referência de revisão para viewports, cenários, seleção de cenas e interpretação do relatório. Não troque falha por silêncio nem marque inspeção visual como aprovada por conveniência.
 
-- Crie uma direção visual coerente com o assunto, com tipografia legível, hierarquia e espaço. Use uma composição principal por slide; fontes, texto extenso e detalhes podem ficar em camadas opcionais.
-- Faça o movimento representar tempo, dependência, transformação, mudança de estado ou comparação. Preserve identidade e posição dos elementos entre etapas quando isso ajudar a acompanhá-los.
-- Construa primeiro os estados visuais importantes e depois suas transições. Destaque o elemento relevante, mostre a mudança e mantenha o resultado visível. Use easing e continuidade para tornar a mudança legível; evite movimento decorativo e transições aleatórias.
-- Toda cena deve continuar compreensível quando pausada. O aluno controla o avanço; não retire texto nem avance slides automaticamente.
-- Mantenha o mesmo sistema de navegação. Adapte diagramas, gráficos, documentos e exemplos ao conteúdo, sem forçar o mesmo layout em todos os slides.
+## Estado de conclusão
 
-Princípios de motion adaptados da [motion-designer](https://github.com/gabrielgreco1/skills/tree/main/motion-designer): história antes do visual, estados bem compostos, timeline determinística e revisão quadro a quadro. Esta skill é autocontida; não exige instalar essa referência nem seguir sua entrada de produção de vídeos.
+Conclua quando a aula cobrir os objetivos, houver prática com feedback, as animações tiverem sido capturadas e inspecionadas, os problemas relevantes estiverem resolvidos e o HTML final tiver sido aberto e testado. Se uma verificação não puder ser realizada, diga exatamente qual foi e não a registre como realizada.
 
-## HTML e animação reproduzível
-
-Entregue um HTML autocontido, com estilos, scripts e recursos incorporados quando possível, que abra sem serviço externo. Não dependa de um build ou servidor permanente para estudar. Se o pedido exigir recursos adicionais, entregue a pasta completa e explique como abrir.
-
-Inclua índice, progresso, navegação por slides, controles de etapa, reprodução, pausa e reinício das cenas. Suporte teclado, foco visível e movimento reduzido. Não capture setas ou espaço durante edição de campos. Mantenha aprofundamento e fontes acessíveis.
-
-Modele a cena por **slide + etapa + tempo local + entradas do aluno**. Exponha uma função como `window.lesson.seek({ slide, step, time, inputs })` que restaure o estado completo, inclusive ao voltar ou buscar fora de ordem. Aguarde fontes e recursos antes de sinalizar prontidão.
-
-Calcule a imagem a partir desse estado: o mesmo estado produz o mesmo frame. O relógio de reprodução apenas avança o tempo local. Evite aleatoriedade sem seed, transições CSS que escapem ao seek e mudanças acumuladas que impeçam voltar no tempo. Separe o estado pedagógico do relógio da animação.
-
-## Revisão com Playwright e entrega
-
-Abra o HTML com Playwright e verifique navegação, teclado, etapas, pausa, reinício e uma interação de aprendizagem. Busque cenas fora de ordem para verificar que não dependem de reprodução anterior.
-
-Capture os estados importantes de todos os slides. Gere quadros das sequências animadas curtas com Playwright, avançando a timeline frame a frame, normalmente a 30 fps, em lotes pequenos. Inspecione uma folha de contato e amplie os frames suspeitos. Confira cortes, sobreposições, legibilidade e continuidade durante as transições; uma captura final não basta. Corrija e recapture as cenas alteradas. Mantenha a revisão fora dos entregáveis e descarte frames temporários volumosos depois da inspeção.
-
-Confira também uma largura menor e o modo de movimento reduzido. Não declare revisão visual ou execução que não tenha ocorrido. Se alguma verificação for impossível, informe a limitação específica.
-
-Antes de entregar, confira o resultado de aprendizagem, exatidão, fontes, quantidade solicitada de slides e coerência entre explicação, imagem e comportamento. Execute exemplos em ambiente apropriado quando apresentados como testados; uma simulação no navegador não prova o funcionamento de uma ferramenta real.
-
-Salve o resultado na pasta de entregáveis do projeto. Entregue o link da aula e uma instrução breve de navegação. O produto é o HTML interativo; exporte vídeo somente se solicitado.
+Na resposta final: link da aula, instrução curta para navegar e limitações materiais. Não entregue a árvore de produção como se fosse a aula. Ao editar esta skill, valide seus scripts e o exemplo executável, sincronize a instalação solicitada e mantenha o pacote do repositório coerente.
