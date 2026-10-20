@@ -2,7 +2,7 @@
 
 A growing pile of [Claude Code](https://claude.com/claude-code) and [Codex](https://developers.openai.com/codex/) skills: drop-in folders that teach your agent to do one thing really, really well.
 
-Right now the pile has three skills in it, and more are coming.
+Right now the pile has four skills in it, and more are coming.
 
 > ⭐ **If this saves you an afternoon, leave a star.** It costs nothing and helps other people find the repo.
 
@@ -13,6 +13,7 @@ Right now the pile has three skills in it, and more are coming.
 | [`motion-designer`](./motion-designer) | Turns a product website, or any story or topic, into short motion-graphics videos for Reels, TikTok, Shorts, Instagram, LinkedIn and X. You get real photos, real 3D, captions that appear word by word as they're spoken, natural narration, sound design and a spoken call to action. Everything is rendered from code: no After Effects, no timeline scrubbing. Each video is checked frame by frame before you see it. Before it starts, it asks you a few questions: language, idea, how many versions, sound, voice, platform and length. |
 | [`agentbox`](./agentbox) | Runs web-scraping subagents inside isolated Docker sandboxes, one box per subagent. Each box has a terminal, a persistent headless Chromium, passive listeners that log every request without touching the traffic, and an optional proxy from any provider with a hard budget and known cost per request. An agent journal and a merged timeline let you check every claim a subagent makes before you trust it. Needs Docker. |
 | [`aula-interativa`](./aula-interativa) | Turns any topic into a self-contained HTML lesson with interactive slides, worked examples and deterministic animations checked frame by frame with Playwright. Asks only for language, topic and depth (or a slide count). Includes detailed teaching and motion guides, ten animation recipes, a reusable player, frame capture, contact sheets and artifact-bound review reports. Software lessons connect concepts to version-labelled UI walkthroughs. |
+| [`ui-humanizer`](./ui-humanizer) | Takes the "made with AI" look out of sites, landing pages, apps, docs and slides. Built from 51 replies to a thread on what gives an AI-made site away: the uppercase label above every heading, the gradient word in the title, cards with a side stripe, pulsing chips, emoji as icons, Tailwind purple, pills everywhere, a bakery that looks like a SaaS. It runs a full process (brief, sketch before code, references from Pinterest and friends searched in the browser, design system, build, audit) and ships a dependency-free detector script. |
 
 *Some skills are on their way. Some are still just a strongly worded note on my phone.*
 
