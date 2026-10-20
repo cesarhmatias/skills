@@ -1,8 +1,21 @@
 # Roteiro: da pergunta de aprendizagem à cena
 
+## Roteiro: fala · imagem · tipo
+
+Antes de qualquer código, escreva `work/roteiro.md` como uma tabela, uma linha por passo:
+
+```text
+| tela | tipo     | passo     | frase da barra (até 30 palavras)                | o que aparece / muda                     |
+| 2    | mock     | digitar   | Uma consulta comum: buscar o pedido 42.        | terminal digita o SELECT                 |
+| 2    | mock     | plano     | “Seq Scan”: leu a tabela inteira.              | EXPLAIN; destaque em Seq Scan e Buffers  |
+| 3    | explicar | uma       | As linhas ficam juntas, em páginas.            | página enche de linhas                   |
+```
+
+Leia só a coluna de frases, de cima a baixo: ela precisa contar a aula sozinha, sem termos indefinidos e sem repetir o título. Depois leia só a coluna de imagens: cada linha deve mostrar algo diferente. Corrija o roteiro antes de desenhar; é o reparo mais barato.
+
 ## A unidade de autoria
 
-Um slide contém uma unidade de raciocínio. Uma cena é a demonstração dessa unidade. Uma etapa é um ponto de parada que o aluno pode inspecionar.
+Uma tela contém uma unidade de raciocínio. A cena é a demonstração dessa unidade. Um passo é um ponto de parada: cada Continuar mostra um passo e para.
 
 A quantidade de etapas vem do mecanismo. Um antes/depois pode precisar de duas; uma negociação entre cinco agentes pode precisar de várias. O player incluído aceita quantidades variáveis.
 
@@ -13,7 +26,7 @@ Não confunda slide, capítulo, estado e frame. Um frame é a imagem em um insta
 Registre antes da implementação:
 
 ```text
-id e capítulo
+id, tipo (kind) e kicker
 pergunta que a cena responde
 resultado observável
 pré-requisitos já disponíveis
@@ -22,12 +35,12 @@ entradas e defaults
 modelo que calcula o resultado
 estados inicial, intermediários e final
 etapas nomeadas e duração de cada transição
-texto em cada estado
+frase da barra em cada passo (até 30 palavras) e, se houver, o aprofundamento (até ~5 linhas)
 movimentos e seu significado
 interação e hipóteses possíveis
 feedback e explicação
 limites da representação
-fontes e versão quando relevantes
+fontes (ids em `sources`, nunca na cena)
 estados e cenários que a revisão deve capturar
 ```
 
@@ -85,15 +98,15 @@ Para cada etapa, use um identificador estável e uma descrição concreta:
 
 ```js
 steps: [
-  { id: 'initial', label: 'Estado inicial', duration: 0 },
-  { id: 'transfer', label: 'A transfere para B', duration: 1.8 },
-  { id: 'compare', label: 'Comparar o total', duration: 0.7 }
+  { id: 'inicial', label: '', duration: 0.6 },     // entrada da tela, toca ao abrir
+  { id: 'transferir', label: '', duration: 1.8 },
+  { id: 'conferir', label: '', duration: 0.6, cta: 'Conferir' }
 ]
 ```
 
-A duração é a transição para aquela etapa. `time=duration` é o ponto de parada. Uma etapa de duração zero é instantânea e ainda deve ter estado definido.
+A duração é a transição para aquele passo. `time=duration` é o ponto de parada. O primeiro passo toca quando a tela abre; dê a ele uma entrada curta em vez de começar com tudo pronto. A frase do passo vem de `render` (`caption`), derivada do estado.
 
-O tempo de leitura não deve ser confundido com duração de transição. O resultado fica parado indefinidamente quando a etapa termina. Em reprodução contínua de uma cena, inclua holds necessários dentro da timeline e preserve uma forma de pausar.
+O tempo de leitura não deve ser confundido com duração de transição. O resultado fica parado até o aluno pedir Continuar; não há reprodução contínua na interface.
 
 ## Cenas com escolhas
 

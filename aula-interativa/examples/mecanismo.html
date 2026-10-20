@@ -1,33 +1,99 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Exemplo executável · Conservação de quantidade</title><link rel="stylesheet" href="../templates/player.css"><style>
-.reservoirs{display:flex;gap:2rem;justify-content:center;align-items:flex-end;margin:1.5rem 0}.reservoir{width:clamp(95px,25vw,190px);text-align:center}.tank{height:150px;border:2px solid #86a2c5;border-top:0;position:relative;overflow:hidden;background:#f2f6fc}.water{position:absolute;bottom:0;width:100%;background:#4c85dc}.reservoir h2{font-size:1.1rem;margin:.7rem 0}.reading{font-size:1.4rem;font-variant-numeric:tabular-nums}.totals{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;border-top:1px solid var(--line);padding-top:1rem}.totals p{margin:.3rem 0;line-height:1.7}.annotation{text-align:center;min-height:2rem;font-size:1rem;color:var(--muted)}.exercise{max-width:65ch;line-height:1.8;font-size:1.1rem}
-</style></head><body><div id="lesson"></div><script src="../templates/motion.js"></script><script src="../templates/player.js"></script><script>
-const M = LessonMotion;
-const scenes = [{
- id:'transferencia', title:'Para onde foi a quantidade?', chapter:'Modelo · Conservação',
- description:'Um modelo sintético com 20 unidades em A. A transfere para B. Altere a quantidade e observe o que permanece igual. Os volumes desenhados representam quantidade, sem simular hidrodinâmica.',
- initialInputs:{amount:8,loss:'0'},
- controls:[{key:'amount',type:'range',label:'Quantidade a transferir',min:0,max:20,step:1},{key:'loss',type:'select',label:'Fração que sai dos reservatórios',options:[{value:'0',label:'0% · sem perda'},{value:'0.2',label:'20% · sai do sistema observado'}]}],
- auditCases:[{id:'zero',inputs:{amount:0,loss:'0'}},{id:'limite',inputs:{amount:20,loss:'0'}},{id:'perda',inputs:{amount:10,loss:'0.2'}}],
- steps:[{id:'inicial',label:'Antes da transferência',duration:0},{id:'transferir',label:'A transfere para B',duration:1.8},{id:'comparar',label:'Conferir a quantidade total',duration:.65}],
- render({state,time,motion:M}){
-  const fraction=state.step===0?0:state.step===1?M.segment(time,.25,1.45,M.linear):1;
-  const moved=state.inputs.amount*fraction, outside=moved*Number(state.inputs.loss), a=20-moved,b=moved-outside;
-  const f=v=>M.number(v,{digits:2});
-  return {html:`<div class="annotation" data-qa-text="transfer-progress">Transferido: ${f(moved)} de ${f(state.inputs.amount)} unidades</div><div class="reservoirs">${[['A',a],['B',b]].map(([id,value])=>`<div class="reservoir"><div class="tank" aria-hidden="true"><div class="water" style="height:${value/20*100}%"></div></div><h2 data-qa-text="label-${id}">Reservatório ${id}</h2><p class="reading lesson-value" data-qa-text="value-${id}" data-value="${value}">${f(value)} un.</p></div>`).join('')}</div><div class="totals"><div><p data-qa-text="inside-label">Total nos reservatórios</p><p class="reading lesson-value" data-qa-text="inside-total" data-value="${a+b}">${f(a+b)} un.</p></div><div><p data-qa-text="outside-label">Fora dos reservatórios</p><p class="reading lesson-value" data-qa-text="outside-total" data-value="${outside}">${f(outside)} un.</p></div></div><p class="lesson-note" data-qa-text="closed-total">A + B + fora = ${f(a+b+outside)} unidades. A fronteira do sistema define qual total está sendo comparado.</p>`,caption:state.step===0?'A contém 20 unidades e B está vazio.':moved<state.inputs.amount?'A perde a quantidade transferida; B recebe a parcela que permanece nos reservatórios.':outside>0?'O total nos reservatórios diminuiu; ao incluir a quantidade que saiu, o total continua 20.':'A e B mudaram; a soma continua sendo 20.'};
- }
-},{
- id:'previsao',title:'Preveja antes de conferir',chapter:'Aplicação · Mesmo princípio, outra ação',
- description:'A começa com 20 unidades e transfere 8 para B, sem perda. Escolha quanto deve restar em A e avance uma etapa para confrontar sua previsão.',
- initialInputs:{prediction:''},
- controls:[{key:'prediction',type:'select',label:'Quanto resta em A?',options:[{value:'',label:'Escolha uma previsão'},{value:'12',label:'12 unidades'},{value:'8',label:'8 unidades'},{value:'20',label:'20 unidades'}]}],
- auditCases:[{id:'correta',inputs:{prediction:'12'}},{id:'hipotese-errada',inputs:{prediction:'8'}}],
- steps:[{id:'prever',label:'Faça uma previsão',duration:0},{id:'conferir',label:'Confronte o resultado',duration:.6}],
- render({state,time}){
-  const reveal=state.step===1&&time>=.6,answer=state.inputs.prediction;
-  const feedback=!answer?'Escolha uma previsão para receber uma explicação.':answer==='12'?'Correto: A perde 8 das 20 unidades, então resta 20 − 8 = 12. B recebe as mesmas 8; 12 + 8 = 20.':answer==='8'?'8 é a quantidade transferida para B, não a que resta em A. O saldo de A é 20 − 8 = 12.':'20 era o saldo inicial. Como 8 saíram de A, esse saldo muda para 12. A soma de A e B continua 20.';
-  return {html:`<div class="exercise"><p data-qa-text="exercise-start">A: 20 unidades → transferir 8 → B</p><p data-qa-text="exercise-equation">Quanto vale 20 − 8?</p>${reveal?`<p class="lesson-feedback ${answer&&answer!=='12'?'wrong':''}" data-qa-text="feedback">${M.escape(feedback)}</p>`:'<p class="lesson-note" data-qa-text="exercise-prompt">Sua previsão será confrontada ao avançar uma etapa.</p>'}</div>`,caption:reveal?'Explique a diferença entre quantidade transferida e saldo restante.':'Escolha uma resposta; depois use Etapa →.'};
- }
-}];
-window.lesson=LessonPlayer.create({root:'#lesson',title:'Exemplo de autoria · duas cenas',slides:scenes});
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Exemplo · Transferência</title>
+<link rel="stylesheet" href="../templates/player.css">
+<style>
+/* Tema desta aula: contas como recipientes; azul = dinheiro, âmbar = em movimento. */
+svg .tank{fill:var(--bg);stroke:#d9d5cc;stroke-width:2.5}
+svg .water{fill:var(--accent)}
+svg .name{font-size:28px;font-weight:650;fill:var(--ink);text-anchor:middle}
+svg .val{font-size:44px;font-weight:760;fill:var(--ink);text-anchor:middle;font-variant-numeric:tabular-nums}
+svg .lab{font-size:24px;font-weight:600;fill:var(--muted);text-anchor:middle}
+</style></head><body><div id="lesson"></div>
+<script src="../templates/motion.js"></script><script src="../templates/kit.js"></script><script src="../templates/player.js"></script><script>
+const M = LessonMotion, K = LessonKit, money = v => `R$ ${M.number(v, { digits: 2 })}`;
+
+// Tela 1 · abertura: a pergunta, com um desenho mínimo.
+const abertura = {
+  id: 'abertura', kind: 'abertura', kicker: 'Conservação', title: 'Numa transferência, o dinheiro some de algum lugar?',
+  steps: [{ id: 'contas', label: '', duration: 1.4 }],
+  render({ time }) {
+    const a = M.enter(time, .1), b = M.enter(time, .3), arrow = M.segment(time, .7, 1.2, M.easeInOutCubic);
+    // viewBox do tamanho do conteúdo: nada de margem vazia.
+    const body = `<g ${K.rise(a)}><circle cx="120" cy="120" r="110" fill="var(--accent-soft)"/><text class="name" x="120" y="130" data-qa-text="a">Conta A</text></g>
+      <g ${K.rise(b)}><circle cx="500" cy="120" r="110" fill="var(--accent-soft)"/><text class="name" x="500" y="130" data-qa-text="b">Conta B</text></g>
+      <path d="M250 120 H${M.lerp(250, 370, arrow)}" stroke="var(--warm)" stroke-width="7" stroke-linecap="round"/>`;
+    // No celular, o mesmo desenho em diagonal (narrow), calculado do mesmo estado; proporção perto de 1:1.
+    const tall = `<g ${K.rise(a)}><circle cx="100" cy="100" r="95" fill="var(--accent-soft)"/><text class="name" x="100" y="110">Conta A</text></g>
+      <g ${K.rise(b)}><circle cx="280" cy="300" r="95" fill="var(--accent-soft)"/><text class="name" x="280" y="310">Conta B</text></g>
+      <path d="M170 175 L${M.lerp(170, 210, arrow)} ${M.lerp(175, 220, arrow)}" stroke="var(--warm)" stroke-width="7" stroke-linecap="round"/>`;
+    return { html: K.diagram(body, { w: 620, h: 240, narrow: { body: tall, w: 380, h: 400 } }), caption: 'A conta A manda dinheiro para a conta B. O que acontece com o total?' };
+  }
+};
+// Tela 2 · mock: a mesma situação como o aluno a vê num app real (rotulado como simulação).
+const app = {
+  id: 'app', kind: 'mock', kicker: 'Na prática', title: 'Primeiro, como você vê no app',
+  steps: [{ id: 'antes', label: '', duration: .6 }, { id: 'enviar', label: '', duration: 1.2 }],
+  render({ state, time }) {
+    const sent = state.step === 1 && time >= .6, e = M.enter(state.step === 1 ? time : 0, .6, .45);
+    const body = `<div class="app-hero"><span>Conta A · saldo disponível</span><b data-qa-text="saldo">${money(sent ? 12 : 20)}</b></div><div class="app-row"><span>Para</span><b>Conta B</b></div>
+      <div class="app-row on"><span>Transferir para B</span><b>${money(8)}</b></div>
+      ${sent ? `<div class="app-toast" style="${e.style}" data-qa-text="toast">Transferência enviada</div>` : '<div class="app-btn">Confirmar</div>'}`;
+    return { html: K.app({ title: 'Banco', body }), caption: state.step === 0 ? 'A conta A tem R$ 20 e vai enviar R$ 8 para B.' : 'O saldo de A caiu para R$ 12. Mas para onde foram os R$ 8?' };
+  }
+};
+// Tela 3 · diagrama: o mecanismo, manipulável.
+const transferencia = {
+  id: 'transferencia', kind: 'diagrama', kicker: 'O mecanismo', title: 'O que sai de A entra em B',
+  initialInputs: { amount: 8, loss: '0' },
+  controls: [{ key: 'amount', type: 'range', label: 'Valor', min: 0, max: 20, step: 1, format: v => money(v) }, { key: 'loss', type: 'choice', label: 'Tarifa', options: [{ value: '0', label: 'sem tarifa' }, { value: '0.2', label: '20% de tarifa' }] }],
+  auditCases: [{ id: 'zero', inputs: { amount: 0, loss: '0' } }, { id: 'limite', inputs: { amount: 20, loss: '0' } }, { id: 'perda', inputs: { amount: 10, loss: '0.2' } }],
+  steps: [{ id: 'inicial', label: '', duration: 0 }, { id: 'transferir', label: '', duration: 1.8 }, { id: 'comparar', label: '', duration: .65 }],
+  render({ state, time }) {
+    // Modelo primeiro: volumes, números e legenda leem os mesmos valores.
+    const fraction = state.step === 0 ? 0 : state.step === 1 ? M.segment(time, .25, 1.45, M.linear) : 1;
+    const moved = state.inputs.amount * fraction, outside = moved * Number(state.inputs.loss), a = 20 - moved, b = moved - outside;
+    const tank = (x, id, value) => `<rect class="tank" x="${x}" y="60" width="220" height="300" rx="22"/><rect class="water" x="${x + 6}" y="${354 - 288 * value / 20}" width="208" height="${288 * value / 20}" rx="16"/>
+      <text class="name" x="${x + 110}" y="410" data-qa-text="label-${id}">Conta ${id}</text><text class="val" x="${x + 110}" y="468" data-qa-text="value-${id}" data-value="${value}">${money(value)}</text>`;
+    const total = state.step === 2 ? M.enter(time, .05, .5) : { opacity: 0, y: 0 };
+    // Contas nas laterais, o que importa (soma e tarifa) no meio: um bloco só, sem vazio.
+    const body = tank(20, 'A', a) + tank(560, 'B', b) +
+      `<g ${K.rise(total)}><text class="lab" x="400" y="170" data-qa-text="inside-total" data-value="${a + b}">A + B</text><text class="val" x="400" y="222">${money(a + b)}</text></g>
+       <g ${K.op(outside > 0 ? 1 : 0)}><text class="lab" x="400" y="300" data-qa-text="outside-total" data-value="${outside}">tarifa</text><text class="lab" x="400" y="334">${money(outside)}</text></g>`;
+    const caption = state.step === 0 ? 'A tem R$ 20, B está vazia. Escolha um valor e continue.' : moved < state.inputs.amount ? 'A perde exatamente o que B recebe.' : outside > 0 ? 'A + B diminuiu — a diferença ficou com o banco. Somando a tarifa, o total continua R$ 20.' : 'A e B mudaram; a soma continua R$ 20.';
+    // No celular: as contas lado a lado ficam maiores e a soma vai para baixo delas.
+    const tall = tank(20, 'A', a).replace(/data-qa-text="[^"]*"/g, '') + tank(380, 'B', b).replace(/data-qa-text="[^"]*"/g, '') +
+      `<g ${K.rise(total)}><text class="lab" x="310" y="540">A + B</text><text class="val" x="310" y="592">${money(a + b)}</text></g>
+       <g ${K.op(outside > 0 ? 1 : 0)}><text class="lab" x="310" y="650">tarifa: ${money(outside)}</text></g>`;
+    return { html: K.diagram(body, { w: 800, h: 490, narrow: { body: tall, w: 620, h: 670 } }), caption };
+  }
+};
+// Tela 4 · explicar com aprofundamento: uma frase grande, um bloco de corpo, um desenho; uma região de texto.
+const porque = {
+  id: 'porque', kind: 'explicar', kicker: 'Por quê', title: 'O total só muda se algo sair do sistema',
+  steps: [{ id: 'ideia', label: '', duration: .9 }],
+  render({ time }) {
+    const e = M.enter(time, .2, .6);
+    const visual = `<svg viewBox="0 0 300 220" role="img"><g ${K.rise(e)}><rect x="20" y="40" width="260" height="140" rx="24" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="8 8"/>
+      <circle cx="95" cy="110" r="42" fill="var(--accent-soft)"/><circle cx="205" cy="110" r="42" fill="var(--accent-soft)"/>
+      <text class="name" x="95" y="120" data-qa-text="pa">A</text><text class="name" x="205" y="120" data-qa-text="pb">B</text>
+      <text class="lab" x="150" y="26" style="font-size:15px" data-qa-text="sistema">sistema</text></g></svg>`;
+    return { html: K.split({ say: 'Dinheiro não some nem aparece: ele <span class="sc-term">muda de lugar</span>.', read: 'Pense nas duas contas como uma caixa fechada. Uma transferência só move valor de um lado para o outro dentro da caixa, então a soma continua R$ 20. A soma só diminui quando parte do valor sai da caixa — como a tarifa, que vai para o banco. Para conferir qualquer transação, some tudo o que está dentro e tudo o que saiu.', visual }), caption: 'Esse raciocínio vale para estoque, energia, votos: qualquer coisa que se conserva.' };
+  }
+};
+// Tela 5 · prática: prever, conferir, feedback causal por resposta.
+const previsao = K.quiz({
+  id: 'previsao', kicker: 'Sua vez', title: 'Preveja antes de conferir',
+  question: 'A tem R$ 20 e envia R$ 8 para B, sem tarifa. Quanto resta em A?', hint: 'Pense no que sai de A, não no que chega em B.',
+  correct: '12', options: ['12', '8', '20'].map(v => ({ value: v, label: money(Number(v)) })),
+  feedback: { '12': 'Correto: A perde 8 das 20 unidades, então resta 20 − 8 = 12. B recebe as mesmas 8; 12 + 8 = 20.', '8': 'R$ 8 é o que chegou em B, não o que ficou em A. Em A sobram 20 − 8 = 12.', '20': 'R$ 20 era o saldo antes. Saíram 8, então sobram 12 — e a soma de A e B continua 20.' }
+});
+// Tela 6 · resumo.
+const resumo = {
+  id: 'resumo', kind: 'resumo', kicker: 'Resumo', title: 'Duas ideias para levar',
+  steps: [{ id: 'cards', label: '', duration: 1.1 }],
+  render({ time }) {
+    return { html: K.cards([{ icon: '⇄', text: 'O que sai de um lado entra no outro.', sub: 'A soma não muda.' }, { icon: '◎', text: 'Se algo sai do sistema, conte-o também.', sub: 'A tarifa explica a diferença.' }], time), caption: 'Fim do exemplo.' };
+  }
+};
+window.lesson = LessonPlayer.create({ root: '#lesson', title: 'Exemplo · Transferência', lang: 'pt-BR', slides: [abertura, app, transferencia, porque, previsao, resumo] });
 </script></body></html>

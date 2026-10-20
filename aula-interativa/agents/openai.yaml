@@ -1,4 +1,4 @@
 interface:
   display_name: "Aula interativa"
-  short_description: "Aprenda com slides, exemplos e animações interativas"
+  short_description: "Aprenda com telas guiadas, mocks reais e animações"
   default_prompt: "Use $aula-interativa para criar uma aula em HTML sobre o que quero aprender hoje."

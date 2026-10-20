@@ -36,7 +36,7 @@ Mantenha `sources.json` no diretório de trabalho. Registre somente evidência u
 
 Os textos explicativos acima são campos de autoria, não valores que possam permanecer em um registro final. Preencha com as evidências reais. Não invente uma versão ou licença.
 
-Associe fontes aos slides e às afirmações que dependem delas. Disponibilize referências por slide e uma biblioteca completa no HTML. Evite despejar dezenas de links sem relação com o conteúdo.
+Associe fontes às telas e às afirmações que dependem delas, pelo campo `sources` de cada tela; o player as mostra no painel **Fontes**, junto com a biblioteca completa. Nunca escreva a citação na cena: nada de “Fonte: …”, número de seção ou data de consulta na tela. Evite despejar dezenas de links sem relação com o conteúdo.
 
 ## Fixar a versão demonstrada
 
@@ -57,7 +57,7 @@ Não misture um código de uma versão, uma tela de outra e um procedimento de u
 |---|---|---|
 | Captura real própria | A posição exata do controle importa e há acesso autorizado | Ambiente e versão observados |
 | Captura oficial | O manual documenta a tela e o percurso | Fonte, versão do documento, possível diferença de build |
-| Reconstrução interativa | É preciso praticar sem conta ou serviço real | “Simulação de interface”; simplificações |
+| Mock (reconstrução) | Mostrar a ferramenta ou situação como o aluno a encontra | Selo “simulação” no mock; formatos e nomes verificados |
 | Modelo conceitual | É preciso explicar o mecanismo por trás da tela | “Modelo conceitual”; escopo |
 | Código executado | O ambiente pertinente foi realmente usado | O que foi executado e com quais dependências |
 | Código de referência | Não houve execução no produto | “Não executado neste ambiente”; como verificar |

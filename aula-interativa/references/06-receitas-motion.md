@@ -154,6 +154,36 @@ Uma visualização pode simplificar tempos, mas deve declarar isso. Aumentar a c
 
 **Evitar:** afirmar ganho de throughput por aumentar workers quando outro recurso continua limitando.
 
+## 11. Mock de terminal ou app
+
+**Serve para:** mostrar o problema e a solução como o aluno os encontra (comando, saída, tela).
+
+```js
+const script = [
+  [{ type: true, text: 'SELECT * FROM pedidos WHERE id = 42;', at: .2 }],
+  [{ text: 'Seq Scan on pedidos', at: .3, cls: 's', hl: .6 }, { text: '  Buffers: shared read=10000', at: .5 }]
+];
+return { html: LessonKit.terminal(state, time, script, { title: 'psql' }), caption: '…' };
+```
+
+Um passo por momento de leitura: digitar, ver a resposta, ver o detalhe destacado. Formatos de saída verificados; valores podem ser ilustrativos.
+
+**Revisar:** texto digitado completo no fim do passo; destaque no trecho citado pela frase; selo de simulação visível.
+
+## 12. Câmera que segue o foco
+
+**Serve para:** árvores, mapas e diagramas grandes demais para ler inteiros.
+
+```js
+const frame = n => ({ x: clamp(node[n].x - 450, 0, maxX), y: clamp(node[n].y - 200, 0, maxY), w: 900, h: 420 });
+const cam = M.camera(frame(anterior), frame(atual), p);   // viewBox interpolado
+return { html: LessonKit.diagram(svg, { view: cam, camera: true }) };
+```
+
+Mantenha a proporção do quadro constante. Objeto e câmera usam a mesma curva. Marque o objeto ativo e o balão de explicação com `data-qa-focal`.
+
+**Revisar:** foco dentro do quadro em todos os frames; contexto suficiente para saber onde se está; nenhum rótulo cortado pela metade no centro do quadro.
+
 ## Combinar receitas
 
 Combine poucas receitas em uma mesma cena. Declare qual é principal. Um zoom pode orientar para um clique; o clique pode liberar um fluxo; o fluxo produz uma mudança de quantidade. Se todas ocorrerem juntas sem um caminho de atenção, divida em etapas.

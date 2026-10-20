@@ -4,6 +4,18 @@
 
 Julgue a aula pelo que o aluno consegue observar e fazer. Quantidade de arquivos, linhas, slides ou animações não comprova qualidade. Os módulos existem para orientar decisões e tornar o trabalho reproduzível.
 
+## Experiência do aluno
+
+Falhas reais que reprovaram uma aula desta skill:
+
+- Parágrafo de contexto acima de cada cena e rodapé “Fonte: PostgreSQL 17, §64.1.4” em todas as telas.
+- Cinco botões de player (Reproduzir, Pausar, Reiniciar, Etapa ←/→) e o aluno sem saber o que apertar.
+- “Folhas” usado antes de qualquer explicação do que é uma folha.
+- Texto em seis tamanhos e quatro cores espalhado pela tela; desenho ocupando um terço da cena; buracos de espaço vazio. (Texto longo, sozinho, não é defeito: um parágrafo de aprofundamento bem composto é bem-vindo.)
+- Visual genérico de documento, sem nenhum mock do mundo real.
+
+Reparo: roteiro fala · imagem · tipo; uma frase por passo; termo antes do uso; mock do caso real; player guiado; storyboard revisado com o checklist de experiência.
+
 ## Didática
 
 Uma aula está pronta nesta dimensão quando:
@@ -61,6 +73,8 @@ Falhas de aceitação:
 - Dois títulos disputam o mesmo espaço no meio da troca.
 - Uma legenda varia de altura e desloca os controles a cada frame.
 - A versão mobile é só a composição larga encolhida até perder leitura.
+- Um rótulo de SVG termina fora do viewBox e aparece cortado, sem nenhum overflow na página.
+- No desktop, o aluno precisa rolar a página para encontrar Continuar.
 
 Reparo: recompor o layout, dividir conteúdo e reservar regiões estáveis. Não use mais efeitos para esconder um problema de espaço.
 
@@ -70,11 +84,12 @@ Os controles precisam corresponder ao nome da ação. A preferência de moviment
 
 Falhas de aceitação:
 
-- “Etapa →” reproduz todas as etapas restantes.
-- O fim de uma cena troca de slide sem solicitação.
-- Setas mudam de slide enquanto o aluno edita uma resposta.
+- Continuar reproduz todos os passos restantes de uma vez.
+- O fim de uma animação troca de tela sem o aluno pedir.
+- Setas navegam enquanto o aluno edita uma resposta.
+- Uma prática deixa avançar sem resposta, ou mostra só “errado”.
 - Digitar perde foco porque o campo foi reconstruído.
-- Reiniciar mantém cores ou rótulos da execução anterior.
+- Rever (↺) ou Voltar mantém cores ou rótulos de outro passo.
 - Seek direto e reprodução sequencial geram estados diferentes.
 - Uma resposta errada recebe apenas “erro”, sem explicação.
 

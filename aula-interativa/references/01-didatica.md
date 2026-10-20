@@ -1,5 +1,7 @@
 # Didática: transformar um assunto em aprendizagem observável
 
+Os princípios de como a pessoa aprende numa tela, o orçamento de texto e os tipos de tela estão em [experiência do aluno](00-experiencia-do-aluno.md). Aqui fica a parte de conteúdo: objetivos, pré-requisitos, exemplo e progressão.
+
 ## 1. Delimitar o que a pessoa conseguirá fazer
 
 Um tema não é um objetivo. “Aprender filas” descreve território. “Prever a espera quando a taxa de chegada ultrapassa a capacidade” descreve uma capacidade demonstrável.
@@ -84,9 +86,9 @@ A progressão de referência é:
 6. **Aplicação:** pedir uma decisão ou uma pequena construção.
 7. **Transferência:** usar outro caso sem repetir toda a ajuda.
 
-Essas etapas podem ocupar quantidades diferentes de slides. Algumas podem compartilhar uma cena. Não crie slides vazios para completar uma estrutura fixa.
+Cada etapa costuma ocupar várias telas curtas. Mapeie-as para os tipos de tela: problema → `abertura` + `mock`; modelo → `explicar`; mecanismo e exemplo → `diagrama`; variação → `diagrama` interativo; aplicação e transferência → `pratica`; o caso real resolvido → `mock`.
 
-Cada slide deve responder a uma pergunta ou desenvolver um passo necessário de uma solução. Se uma tela tentar definir o modelo, explicar o algoritmo, ensinar a UI e testar tudo ao mesmo tempo, divida-a ou retire escopo.
+Cada tela responde a uma pergunta ou mostra um passo necessário. Se uma tela tentar definir o modelo, explicar o algoritmo, ensinar a UI e testar tudo ao mesmo tempo, divida-a. Telas a mais custam pouco; telas cheias custam o aluno.
 
 ## 6. Observar, prever, experimentar, explicar
 
@@ -119,9 +121,9 @@ O caso de transferência deve mudar algo estrutural: entrada, contexto, restriç
 
 | Nível | O que preservar | O que reduzir primeiro |
 |---|---|---|
-| Pouca | Modelo correto, exemplo, uma aplicação | Taxonomia extensa, exceções raras, operação especializada |
-| Média | Mecanismo, variação, aplicação com feedback | Detalhes internos que não mudam as decisões |
-| Muita | Mecanismos, limites, alternativas, recuperação quando pertinente | Repetições, slides de abertura decorativos, listas de nomes |
+| Pouca (10–14 telas) | Modelo correto, caso real, exemplo, uma aplicação | Taxonomia extensa, exceções raras, operação especializada |
+| Média (18–26 telas) | Mecanismo, variação, caso real resolvido, aplicação com feedback | Detalhes internos que não mudam as decisões |
+| Muita (30–40 telas) | Mecanismos, limites, alternativas, recuperação quando pertinente | Repetições, telas decorativas, listas de nomes |
 
 Se o total exato de slides conflitar com uma ambição impossível, delimite uma unidade coerente e registre o restante como continuação. Não finja cobrir um livro inteiro em oito telas.
 

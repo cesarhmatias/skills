@@ -1,138 +1,113 @@
 # Direção visual, composição e legibilidade
 
-## Direção própria do conteúdo
+Leia antes [experiência do aluno](00-experiencia-do-aluno.md): orçamento de texto, tipos de tela e composição vêm de lá. Esta referência trata de como desenhar.
 
-Defina uma tese visual curta: que tipo de instrumento ajuda a compreender este assunto? Uma aula sobre circuitos pode usar desenho técnico; uma aula de história pode usar documentos e mapas; uma aula de matemática pode usar alinhamento de operações e gráficos manipuláveis.
+## 1. O palco
 
-Não use a mesma aparência de dashboard para todos os temas. O player pode ser consistente sem impor a composição de cada cena.
-
-Registre tokens em `design.md`:
-
-- Fundo, superfície, texto, texto secundário e contorno.
-- Cores semânticas com papéis explícitos.
-- Famílias e pesos tipográficos.
-- Escala de títulos, corpo, legendas e código.
-- Espaçamentos e limites de largura.
-- Tratamento de diagramas, imagens, equações e destaques.
-- Uma característica visual que pertença ao tema.
-
-Escolha a paleta antes das cenas. Um estado de erro não pode reutilizar a cor de uma categoria importante sem distinção adicional.
-
-## Hierarquia de uma tela
-
-A tela tem regiões com responsabilidades:
+O player dá a hierarquia fixa de toda tela:
 
 ```text
-contexto / capítulo
-pergunta ou título
-explicação curta + demonstração principal
-conclusão da etapa / feedback
-controles persistentes
+progresso (segmentos)                                   Fontes
+KICKER
+Título da tela
+┌──────────────────────── cena ────────────────────────┐
+│  um bloco: desenho, mock, frase grande ou pergunta   │
+└──────────────────────────────────────────────────────┘
+[controles da tela, se houver]
+← Voltar   Frase deste passo ……………………   ↺   [ Continuar → ]
 ```
 
-Essas regiões podem ser laterais ou empilhadas. Não sobreponha controles sobre conteúdo essencial. Uma coluna de apoio não precisa repetir palavra por palavra a legenda da cena.
+Não acrescente regiões. Não ponha parágrafo entre o título e a cena. Não ponha botões dentro da cena.
 
-O título identifica o assunto ou a pergunta de aprendizagem. Evite slogans vagos. A hierarquia deve continuar clara em uma captura sem animação.
+## 2. Tese visual e tokens
 
-## Geometria derivada
+Escolha uma tese curta para o assunto: que instrumento ajuda a ver? Páginas de papel para banco de dados; recipientes para quantidades; mapa para história; circuito para eletrônica. Ela guia formas e uma cor de atenção.
 
-Meça o espaço disponível e derive posições a partir dele. Não espalhe coordenadas arbitrárias sem um sistema de referência.
+Redefina só os tokens no `:root` da aula:
 
-Uma cena SVG pode usar um viewBox estável, mas precisa de tratamento para telas menores. Se o texto ficar minúsculo ao reduzir a escala, recomponha o layout ou permita uma ampliação útil; não declare responsividade apenas porque o SVG encolhe.
+- `--accent` / `--accent-soft` / `--accent-ink`: a cor do assunto (entidades principais).
+- `--warm` / `--warm-soft`: atenção (o que está acontecendo agora). Use em um elemento por vez.
+- `--good` / `--bad`: feedback. Nunca para categorias.
+- `--bg`, `--surface`, `--ink`, `--muted`, `--line`: neutros. Mantenha alto contraste.
 
-Para HTML:
+Duas cores de conteúdo e uma de atenção bastam. Estado também é dito por texto ou forma, não só por cor.
 
-```css
-.lesson-grid {
-  display: grid;
-  grid-template-columns: minmax(16rem, .7fr) minmax(0, 1.7fr);
-  gap: clamp(1rem, 3vw, 3rem);
-}
-@media (max-width: 52rem) {
-  .lesson-grid { grid-template-columns: 1fr; }
-}
-```
+Fonte: o player usa Inter quando a aula a embute (`@font-face` local, licença OFL) e cai para a fonte do sistema. Ambas funcionam; não carregue fontes remotas.
 
-Uma composição larga pode precisar de outro desenho no celular: sequência vertical em vez de quatro nós comprimidos na mesma linha.
+## 3. Blocos de cena (kit.js)
 
-## Tamanho de leitura
+| Bloco | Uso | Regra |
+|---|---|---|
+| `diagram(svg, {w,h})` | Mecanismo desenhado | `w×h` = caixa do conteúdo, sem margens vazias |
+| `diagram(…, {view, camera:true})` | Desenho maior que a tela | Enquadre o foco; marque `data-qa-focal` |
+| `split({say, sub, read, visual})` | Termo ou ideia + desenho | `say` ≤ 1 frase; `sub` curta; `read` aprofundamento de até ~5 linhas |
+| `hero({big, say, sub})` | Um número ou afirmação | Para viradas e conclusões |
+| `terminal(…)` / `app(…)` | Mock da situação real | Formato verificado; selo de simulação |
+| `quiz({...})` | Prática | Feedback por alternativa |
+| `cards(items, time)` | Resumo | 2–4 cartões, ≤ 12 palavras cada |
 
-Use uma base confortável no viewport de estudo: corpo em torno de 17–20 px, legendas em torno de 14–16 px, código em torno de 14–16 px quando couber. Esses são pontos de partida, não números que dispensam inspeção.
+## 4. Geometria derivada
 
-Corte conteúdo antes de reduzir texto essencial a tamanho de rodapé. Rótulos muito pequenos em um diagrama continuam sendo texto essencial se o aluno precisa deles para seguir a explicação.
+- Desenhe em coordenadas próprias do conteúdo: se o desenho tem duas colunas de 220, o viewBox tem ~620 de largura, não 1200.
+- Derive posições de constantes nomeadas (`LX(i)`, `LEVEL_Y`); nada de números soltos espalhados.
+- Tamanhos no viewBox: escolha **um** tamanho para rótulos e **um** para valores/títulos internos e mantenha-os em toda a aula (a captura acusa `TYPE_SIZES` acima de 4 degraus por tela). Confira o tamanho renderizado: a captura acusa `TEXT_TOO_SMALL` abaixo de 11 px.
+- No celular a cena encolhe para ~350 px. Um viewBox justo ao conteúdo normalmente basta. Se não bastar, recomponha: passe `narrow: { body, w, h }` a `LessonKit.diagram` com uma versão vertical do mesmo desenho, calculada do mesmo estado (o CSS mostra uma ou outra; o `render` não depende do viewport). Faça a versão `narrow` sempre que rótulos essenciais renderizarem abaixo de ~14 px no celular (o limite duro da captura é 11 px, mas 12–13 px já cansa). Desenhe-a com proporção perto de 4:5 a 1:1 (é o espaço útil da cena num celular): empilhe ou ponha em diagonal; uma tira alta demais estica a página. Câmera também resolve desenhos largos. `scroll: true` é último recurso.
+- Texto em SVG precisa caber no viewBox: o que passa da borda é cortado sem aviso na página (a captura acusa `TEXT_CLIPPED`). Reserve espaço para a frase mais longa entre todos os cenários.
 
-Evite linhas muito longas de prosa. Código longo pode rolar horizontalmente dentro de sua região, desde que o aluno perceba isso e o resto da página não ganhe overflow.
+## 5. Composição
 
-Números que mudam usam algarismos tabulares ou mono e espaço reservado. Evite um contador que desloca todos os rótulos ao mudar de 9 para 10.
+- **Um bloco por cena.** Desenho e seus rótulos formam um grupo central; não espalhe partes pelos cantos.
+- **Sem buracos.** No estado final de cada tela o conteúdo ocupa ao menos ~45% da cena (mocks ~30%); a captura acusa `SCENE_SPARSE`. Passos intermediários podem começar com pouco. Se sobra vazio, aumente o desenho, traga rótulos e números para perto, aproxime a câmera ou mude o bloco.
+- **Rótulos junto da coisa.** Um rótulo fica a menos de ~1 altura de linha do objeto; nunca numa legenda separada.
+- **Números que mudam:** algarismos tabulares, largura reservada, unidade sempre visível.
+- **Escalas fixas** quando o objetivo é comparar; se a escala muda, anime e diga.
 
-## Fontes e carregamento
+## 6. Objetos e mecanismos físicos
 
-Use fontes locais com licença adequada ou fallbacks confiáveis. Se incorporar webfonts, registre a origem e verifique a licença de redistribuição.
+Quando o assunto é uma máquina, um órgão, um circuito ou qualquer coisa com peças, o desenho **é** a explicação. Um ícone genérico não serve.
 
-Carregue os pesos usados antes de `lesson.ready`. Uma fonte carregada apenas no meio da animação pode mudar a largura do texto e provocar salto.
+- **Peças que se movem juntas aparecem ligadas.** Pistão, biela e virabrequim; engrenagens que se tocam; válvula e came. Se o aluno não vê a ligação, não vê a causa.
+- **Proporções plausíveis.** Consulte um diagrama técnico ou foto (registre em `sources`) e simplifique a partir dele, não da memória.
+- **Corte quando o interior importa.** Mostre o objeto em corte, com a parede como contorno e o conteúdo (gás, líquido, mistura) em cor de preenchimento.
+- **Movimento fiel ao mecanismo.** Se A gira e B sobe e desce, anime as duas a partir do mesmo parâmetro (ângulo, tempo), com a cinemática certa ou uma aproximação declarada.
+- **Rótulos e números ao lado da peça que medem**, nunca do outro lado da cena.
+- **Estado por cor e forma:** aberto/fechado, cheio/vazio, quente/frio; mantenha a convenção em todas as telas.
+- **Representação fiel:** o desenho de uma coisa não pode parecer outra. Uma proteína do vírus não é desenhada como um vírus inteiro; um pacote de rede não é desenhado como o arquivo; uma célula não é um círculo genérico igual ao do núcleo. Pergunte: “o aluno que só olhar o desenho vai concluir algo falso?”. Se sim, redesenhe ou rotule a diferença no próprio desenho.
 
-Teste a legibilidade com o arquivo final offline. Não dependa de uma fonte remota silenciosamente ausente para a composição funcionar.
+## 7. Diagramas
 
-## Diagramas
+- Nós são entidades; não transforme frases em caixas.
+- Arestas têm significado definido (dado, controle, tempo). Destaque só a aresta em uso.
+- Defina símbolos novos na primeira aparição, no próprio desenho.
+- Uma linha do tempo ou seta não implica causa; rotule.
 
-- Nós representam entidades; não transforme toda frase em uma caixa.
-- Arestas precisam de significado definido.
-- Diferencie fluxo de dados, controle e sequência temporal quando coexistirem.
-- Evite atravessar rótulos com setas.
-- Mantenha rótulos próximos da entidade correspondente.
-- Faça uma legenda para símbolos ou códigos de cor novos.
-- Mostre estado por texto ou símbolo além de cor.
+## 8. Mocks e imagens
 
-Uma caixa com título e descrição pode conter texto intencionalmente; marque esse pertencimento na auditoria em vez de ignorar toda sobreposição.
+- Um mock deve parecer a coisa real em proporção, tipografia (mono para terminal) e hierarquia, sem copiar marca registrada.
+- Imagens reais só quando são evidência ou ajudam a reconhecer o objeto; nunca decoração.
+- Screenshots: recorte, amplie a região que importa e mantenha indicação de origem no painel Fontes.
 
-## Gráficos e escalas
+## 9. Estados intermediários
 
-Fixe escalas quando o objetivo for comparar magnitudes entre estados. Uma escala automática que muda junto com o parâmetro pode esconder o efeito ensinado.
+O layout precisa funcionar em todos os frames, não só no fim:
 
-Se a escala precisar mudar, anime ou anuncie a mudança. Preserve unidades e explique recortes de eixo relevantes.
+- Um texto novo entra quando a região já está livre.
+- Nada atravessa um rótulo que o aluno está lendo.
+- Um objeto não sai do quadro durante um arco ou um movimento de câmera.
+- A altura dos blocos não muda quando a frase do passo muda.
 
-Mostre o valor exato em um rótulo estável quando a leitura pela posição não for suficiente. Nunca anime um número de forma independente da forma geométrica que deveria representá-lo.
+## 10. Acessibilidade
 
-## Imagens e screenshots
+Controles com nome e foco visível; navegação por teclado; a frase do passo é anunciada só quando o passo para; movimento reduzido salta para o estado final de cada passo sem esconder informação.
 
-Use uma imagem quando ela for evidência ou ajudar a identificar um objeto. Não preencha slides com fotos decorativas sem relação com a explicação.
-
-Screenshots precisam de ampliação e recortes legíveis. Uma captura inteira ilegível seguida de uma simulação inventada não ensina onde clicar.
-
-A imagem pode ocupar uma região própria; os callouts ficam fora da área que o aluno precisa ler. Quando usar zoom, mantenha uma pequena indicação de onde o recorte veio.
-
-## Estados intermediários
-
-O layout precisa funcionar em todos os frames, não apenas nos endpoints.
-
-Erros comuns:
-
-- Um título novo entra enquanto o antigo ainda ocupa a mesma região.
-- Um rótulo cruza uma aresta e fica ilegível.
-- Um objeto sai do viewport durante um arco.
-- O texto aparece antes do fundo ou do callout.
-- A altura do card muda quando a legenda é substituída.
-- O controle fica coberto por uma expansão da cena.
-
-Planeje saídas e entradas na mesma faixa para que não disputem espaço. Reserve altura para legendas variáveis ou use transição explícita entre blocos.
-
-## Acessibilidade funcional
-
-Controles precisam de nomes, foco visível e operação por teclado. Ícones isolados precisam de rótulo acessível. O texto de feedback deve ficar disponível a tecnologias assistivas sem anunciar dezenas de atualizações por segundo durante um contador.
-
-No movimento reduzido, leve a cena a um estado equivalente compreensível. Não esconda o mecanismo ou substitua a aula por uma tela vazia.
-
-Respeite campos de edição: setas, espaço e teclas de texto pertencem ao campo enquanto ele está ativo. Atalhos do player não devem alterar a resposta do aluno.
-
-## Instrumentação para revisão
-
-Marque entidades e texto essencial no HTML:
+## 11. Instrumentação para revisão
 
 ```html
-<section data-qa-boundary="scene">
-  <h2 data-qa-text="title">Transferência</h2>
-  <svg><!-- rótulos essenciais recebem data-qa-text --></svg>
-</section>
+<text data-qa-text="valor-A">…</text>           <!-- texto essencial -->
+<g data-qa-focal="token">…</g>                   <!-- deve ficar no quadro da câmera -->
+<svg data-qa-camera="segue a busca">…</svg>      <!-- corte intencional (o kit marca) -->
+<div data-qa-scroll="motivo">…</div>             <!-- região que rola de propósito -->
+<text data-qa-allow-overlap="chaves em trânsito">…</text>
 ```
 
-Use `data-qa-allow-overlap` apenas com um motivo local documentado. Uma exceção não pode remover uma cena inteira da revisão. O script detecta colisões e cortes básicos; você ainda precisa julgar hierarquia, clareza e tamanho real de leitura.
+Use exceções com motivo local. Nunca marque a cena inteira para silenciar a verificação.

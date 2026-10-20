@@ -56,7 +56,18 @@ Escolha a curva pela propriedade:
 
 Não use easing em um fenômeno cuja taxa é o próprio conteúdo sem explicar a diferença. Se ensina velocidade constante, animar a posição com ease-in/out ensina outra coisa.
 
-## 4. Pacing de referência
+## 4. Movimento natural
+
+O aluno deve sentir calma e continuidade:
+
+- Entradas com `M.enter(t, início, 0.5)`: fade + subida de ~14 px. Grupos com `M.stagger` (60–180 ms entre itens).
+- Deslocamentos com `easeInOutCubic` em 0,8–1,4 s; a entidade mantém forma e cor durante o caminho.
+- Chegada marcada com `M.pulse` (anel ou leve aumento) ou `M.spring` (≤ 4% de overshoot, só ênfase).
+- Câmera (`M.camera`) acompanha o foco quando o desenho é grande; mova a câmera e o objeto juntos, com a mesma curva.
+- Mocks: `M.typed` a ~30 caracteres/s; linhas de saída entram uma a uma com `enter` curto.
+- Depois da revelação, o passo para. Nada pisca, gira ou se repete em loop.
+
+## 5. Pacing de referência
 
 Comece com um ritmo calmo de estudo:
 
@@ -74,7 +85,7 @@ Uma entrada de 0,4 s não dá 0,4 s para ler um parágrafo. O texto deve permane
 
 Evite dois movimentos grandes simultâneos quando a pessoa precisa comparar seus significados. Se a simultaneidade for o conteúdo — por exemplo, conservação de quantidade — preserve-a e dê foco ao vínculo.
 
-## 5. Antecipação, ação e consequência
+## 6. Antecipação, ação e consequência
 
 Uma transição didática costuma ter:
 
@@ -86,7 +97,7 @@ Uma transição didática costuma ter:
 
 Não force essa sequência quando ela falsificar o fenômeno. Em uma transação atômica, mostrar publicação parcial como se fosse observável pode ser enganoso. Use um estado de preparação e uma troca no instante do commit.
 
-## 6. Identidade e trajetórias
+## 7. Identidade e trajetórias
 
 A mesma entidade mantém ID, rótulo e papel semântico. Quando precisar mudar a forma, preserve âncoras reconhecíveis.
 
@@ -100,7 +111,7 @@ const point = cubicBezier(P0, P1, P2, P3, p);
 
 Parametrização por `p` não garante velocidade espacial constante. Se a velocidade for importante, use amostragem por comprimento de arco ou uma trajetória simples com comprimento conhecido. A receita incluída não deve ser apresentada como simulação física de velocidade constante.
 
-## 7. Entradas, saídas e troca de texto
+## 8. Entradas, saídas e troca de texto
 
 Componha os blocos de texto antes da animação. Não adicione palavra a palavra ao DOM se isso fizer as palavras existentes mudarem de posição.
 
@@ -116,11 +127,11 @@ Em uma comparação lado a lado, os dois textos podem coexistir em regiões dist
 
 Anotações numéricas precisam de largura reservada, unidades e arredondamento consistente. O valor exato do modelo continua disponível mesmo que a exibição seja arredondada.
 
-## 8. Estado, foco e tempo de leitura
+## 9. Estado, foco e tempo de leitura
 
 Foco visual e estado são camadas diferentes. Uma borda azul para “elemento em foco” não pode ser confundida com a cor que significa “executando”. Mostre o estado em texto quando necessário.
 
-A legenda deve acompanhar a etapa em andamento. Há três estratégias:
+A frase do passo (barra inferior) deve acompanhar o que está acontecendo. Há três estratégias:
 
 - Descrição da ação contínua: “A transfere quantidade para B”.
 - Texto derivado: “Foram transferidas 4 de 10 unidades”.
@@ -128,13 +139,13 @@ A legenda deve acompanhar a etapa em andamento. Há três estratégias:
 
 Evite um texto final fixo enquanto a geometria ainda mostra o estado anterior.
 
-## 9. Movimento reduzido
+## 10. Movimento reduzido
 
 Use os mesmos estados e entradas. Troque a transição por um salto controlado ao endpoint, com a explicação pertinente. O botão de etapa avança uma etapa, inclusive com movimento reduzido; ele não pode avançar duas porque o código aplicou a preferência depois da navegação.
 
 Se um movimento comunica informação essencial que some no salto, ofereça uma sequência de estados ou comparação estática equivalente.
 
-## 10. Determinismo e inspeção
+## 11. Determinismo e inspeção
 
 A função de renderização recebe estado e produz imagem. O player pode usar `requestAnimationFrame` para fornecer o tempo; a cena não pode consultar o relógio por conta própria.
 

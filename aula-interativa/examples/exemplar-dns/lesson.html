@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Como funciona o DNS</title>
+<link rel="stylesheet" href="../../templates/player.css">
+<style>
+/* Tese: perguntas e indicações entre servidores. Teal = entidades; âmbar = o que acontece agora. */
+:root { --accent:#0f766e; --accent-soft:#e2f3f1; --accent-ink:#0b5c56; --warm:#e8890c; --warm-soft:#fff1dc }
+.v-tall { display:none }
+.sc-visual > .sc-full { flex:1; height:100%; min-width:0; padding:0 }
+@media (max-width:760px) { .v-wide { display:none } .v-tall { display:flex } }
+svg .bx { fill:var(--surface); stroke:var(--accent); stroke-width:2.5 }
+svg .bx.on { fill:var(--warm-soft); stroke:var(--warm); stroke-width:4 }
+svg .bt { font-weight:680; fill:var(--ink); text-anchor:middle; dominant-baseline:central }
+svg .bs { font-weight:520; fill:var(--muted); text-anchor:middle; dominant-baseline:central }
+svg .ed { stroke:var(--line); stroke-width:4; stroke-linecap:round }
+svg .ed.on { stroke:var(--warm); stroke-width:5 }
+svg .note { font-weight:650; fill:var(--accent-ink); dominant-baseline:central }
+svg .noteW { font-weight:700; fill:#a35b00; dominant-baseline:central }
+svg .mono { font-family:var(--mono)!important }
+svg .lab { font-weight:600; fill:var(--muted); dominant-baseline:central }
+svg .pill { fill:var(--accent-soft) }
+svg .pill.on { fill:var(--warm-soft); stroke:var(--warm); stroke-width:3 }
+svg .pt { font-weight:650; fill:var(--accent-ink); text-anchor:middle; dominant-baseline:central }
+svg .pt.on { fill:#8a4b00 }
+svg .faint { fill:var(--faint) }
+.err { width:min(560px,100%); border:1px solid var(--line); border-radius:16px; background:var(--surface); box-shadow:0 14px 40px rgba(20,22,27,.10); overflow:hidden; text-align:left }
+.err-bar { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--bg); border-bottom:1px solid var(--line); font-size:15px }
+.err-bar span { flex:1; padding:6px 12px; border-radius:99px; background:var(--surface); color:var(--ink); font-family:var(--mono) }
+.err-bar em { font-style:normal; font-size:12px; font-weight:600; color:var(--muted); padding:2px 8px; border-radius:6px; background:var(--surface) }
+.err-body { padding:18px 22px 20px }
+.err-body b { display:block; font-size:21px }
+.err-body code { display:inline-block; margin-top:10px; font:600 15px var(--mono); color:var(--muted); letter-spacing:.02em }
+.lp[data-kind=pratica] .sc-center { gap:16px }
+.lp[data-kind=mock] .mock { max-width:1000px; font-size:19px }
+/* Nada se move enquanto é lido: terminal cresce para baixo; prática não sobe quando o feedback entra. */
+.lp[data-kind=mock] .sc-center { justify-content:flex-start; padding-top:clamp(16px,4vh,48px) }
+.lp[data-kind=pratica] .lp-stage { justify-content:flex-start; padding-top:clamp(8px,4vh,40px) }
+.lp[data-kind=pratica] .sc-center { justify-content:flex-start }
+.lp[data-kind=mock] .mock pre { min-height:320px }
+.lp[data-kind=resumo] .sc-card { padding:34px 30px } .lp[data-kind=resumo] .sc-card p { font-size:25px } .lp[data-kind=resumo] .sc-card span { font-size:18px }
+@media (max-width:760px) { .err-body code { font-size:12px } .err-body b { font-size:18px }
+  .lp[data-kind=mock] .sc-center { padding:10px } .lp[data-kind=mock] .mock { font-size:11.5px } .lp[data-kind=mock] .mock pre { padding:14px 12px; min-height:200px }
+  .lp[data-kind=resumo] .sc-cards { gap:12px; padding:14px } .lp[data-kind=resumo] .sc-card { padding:18px 20px } .lp[data-kind=resumo] .sc-card b { font-size:28px; margin-bottom:6px } .lp[data-kind=resumo] .sc-card p { font-size:18px } .lp[data-kind=resumo] .sc-card span { font-size:15px }
+  .lp[data-kind=pratica] .lp-choice { padding:11px 16px; font-size:16px } .lp[data-kind=pratica] .lp-inputs { margin:4px 0 12px } .lp[data-kind=pratica] .sc-question .sc-say { font-size:22px } .err-body { padding:12px 16px 14px } }
+</style></head><body><div id="lesson"></div>
+<script src="../../templates/motion.js"></script><script src="../../templates/kit.js"></script><script src="../../templates/player.js"></script><script>
+const M = LessonMotion, K = LessonKit, esc = M.escape;
+// ---------- Caso único (valores sintéticos, coerentes entre telas) ----------
+const CASE = { name: 'padaria.com.br', ip: '203.0.113.42', ns: 'ns1.padaria.com.br', ttlA: 5, ttlNS: 60 }; // TTL em minutos (300 s e 3600 s)
+
+// ---------- Desenho compartilhado ----------
+const localT = (state, time, k) => state.step > k ? 1e9 : state.step === k ? time : -1;
+// Caixa: entidade com título e subtítulo opcional. Tamanhos de fonte vêm do layout (wide/tall).
+function box(b, { title, sub = '', on = false, dim = false, qa, L }) {
+  const ts = L.title, ss = L.sub, ty = sub ? b.y - ss * .55 : b.y;
+  return `<g opacity="${dim ? .38 : 1}"><rect class="bx ${on ? 'on' : ''}" x="${b.x - b.w / 2}" y="${b.y - b.h / 2}" width="${b.w}" height="${b.h}" rx="18"/>
+    <text class="bt" x="${b.x}" y="${ty}" font-size="${ts}" data-qa-text="${qa}">${title}</text>
+    ${sub ? `<text class="bs" x="${b.x}" y="${b.y + ts * .62}" font-size="${ss}" data-qa-text="${qa}-sub">${sub}</text>` : ''}</g>`;
+}
+// Pontos de ligação entre duas caixas, conforme a orientação do layout.
+function ends(L, a, b) {
+  return L.flow === 'h' ? [{ x: a.x + a.w / 2, y: a.y }, { x: b.x - b.w / 2, y: b.y }] : [{ x: a.x, y: a.y + a.h / 2 }, { x: b.x, y: b.y - b.h / 2 }];
+}
+const line = (p, on) => `<line class="ed ${on ? 'on' : ''}" x1="${p[0].x}" y1="${p[0].y}" x2="${p[1].x}" y2="${p[1].y}"/>`;
+// A mensagem: um ponto âmbar que percorre a aresta. Posição = f(tempo local), sem acumular.
+function token(p, u, back = false) {
+  if (u <= 0 || u >= 1) return '';
+  const [a, b] = back ? [p[1], p[0]] : p, e = M.easeInOutCubic(u);
+  return `<circle cx="${M.lerp(a.x, b.x, e).toFixed(1)}" cy="${M.lerp(a.y, b.y, e).toFixed(1)}" r="14" fill="var(--warm)" stroke="#fff" stroke-width="3"/>`;
+}
+const ring = (b, t, at) => { const v = M.pulse(t, at, .55); return v > .01 ? `<rect x="${b.x - b.w / 2 - 10 * v}" y="${b.y - b.h / 2 - 10 * v}" width="${b.w + 20 * v}" height="${b.h + 20 * v}" rx="${18 + 8 * v}" fill="none" stroke="var(--warm)" stroke-width="3" opacity="${(1 - v * .4).toFixed(2)}"/>` : ''; };
+function note(x, y, text, t, at, { cls = 'note', size, anchor = 'middle', qa }) {
+  const e = M.enter(t, at, .45, 8);
+  return e.opacity > 0 ? `<text class="${cls}" x="${x}" y="${y + e.y}" opacity="${e.opacity.toFixed(3)}" font-size="${size}" text-anchor="${anchor}" data-qa-text="${qa}">${text}</text>` : '';
+}
+// Dois desenhos do mesmo modelo: largo (desktop) e alto (celular). O CSS mostra um deles.
+function dual(build, WIDE, TALL) {
+  const a = build(WIDE), b = build(TALL);
+  return K.diagram(a, { w: WIDE.w, h: WIDE.h }).replace('sc-full', 'sc-full v-wide') + K.diagram(b, { w: TALL.w, h: TALL.h }).replace('sc-full', 'sc-full v-tall');
+}
+
+// ---------- Tela 1 · abertura ----------
+const abertura = {
+  id: 'abertura', kind: 'abertura', kicker: 'DNS', title: 'O que acontece antes de o site abrir?',
+  steps: [{ id: 'digitar', label: '', duration: 1.9 }, { id: 'pergunta', label: '', duration: 1.1 }],
+  render({ state, time }) {
+    const t0 = localT(state, time, 0), t1 = localT(state, time, 1);
+    const typed = M.typed(CASE.name, t0, .3, 14), bar = M.enter(t0, 0, .45), site = M.enter(t0, 1.35, .5);
+    const q = M.enter(t1, .1, .45), qp = M.pulse(t1, .55, .5);
+    // Barra de endereço (b), ponto de interrogação (q) e página (p): lado a lado no desktop, empilhados no celular.
+    const build = L => {
+      const { b, p, q: c } = L;
+      return `<g ${K.rise(bar)}><rect x="${b.x}" y="${b.y}" width="390" height="84" rx="42" fill="var(--bg)" stroke="var(--line)" stroke-width="2.5"/>
+        <circle cx="${b.x + 42}" cy="${b.y + 42}" r="12" fill="none" stroke="var(--faint)" stroke-width="3"/><line x1="${b.x + 50}" y1="${b.y + 50}" x2="${b.x + 58}" y2="${b.y + 58}" stroke="var(--faint)" stroke-width="3"/>
+        <text x="${b.x + 74}" y="${b.y + 42}" font-size="32" font-weight="600" fill="var(--ink)" dominant-baseline="central" data-qa-text="endereco">${esc(typed)}${typed.length < CASE.name.length && t0 >= .3 ? '|' : ''}</text>
+        <text class="lab" x="${b.x + 195}" y="${b.y + 126}" font-size="28" text-anchor="middle" data-qa-text="voce">você digita</text></g>
+      <g ${K.rise(site)}><g transform="translate(${p.x} ${p.y}) scale(${p.k})"><rect width="250" height="300" rx="20" fill="var(--surface)" stroke="var(--line)" stroke-width="2.5"/>
+        <rect width="250" height="44" rx="20" fill="var(--accent-soft)"/><rect y="24" width="250" height="20" fill="var(--accent-soft)"/>
+        <text x="125" y="90" font-size="34" font-weight="720" fill="var(--accent-ink)" text-anchor="middle" data-qa-text="padaria">Padaria</text>
+        <rect x="32" y="128" width="186" height="14" rx="7" fill="var(--line)"/><rect x="32" y="156" width="150" height="14" rx="7" fill="var(--line)"/>
+        <rect x="32" y="196" width="186" height="72" rx="12" fill="var(--warm-soft)"/></g>
+        <text class="lab" x="${p.x + 125 * p.k}" y="${p.y + 300 * p.k + 38}" font-size="28" text-anchor="middle" data-qa-text="site">a página abre</text></g>
+      <g opacity="${q.opacity.toFixed(3)}"><line x1="${c.x1}" y1="${c.y1}" x2="${c.x2}" y2="${c.y2}" stroke="var(--warm)" stroke-width="5" stroke-dasharray="4 12" stroke-linecap="round"/>
+        <circle cx="${c.x}" cy="${c.y}" r="${(38 + 6 * qp).toFixed(1)}" fill="var(--warm)"/><text x="${c.x}" y="${c.y + 2}" font-size="46" font-weight="800" fill="#fff" text-anchor="middle" dominant-baseline="central" data-qa-text="interrogacao">?</text></g>`;
+    };
+    const WIDE = { w: 820, h: 412, b: { x: 10, y: 150 }, p: { x: 560, y: 40, k: 1 }, q: { x: 480, y: 192, x1: 420, y1: 192, x2: 540, y2: 192 } };
+    const TALL = { w: 420, h: 560, b: { x: 15, y: 6 }, p: { x: 116, y: 270, k: .75 }, q: { x: 210, y: 215, x1: 210, y1: 168, x2: 210, y2: 262 } };
+    const caption = state.step === 0 ? 'Você digita um nome e aperta Enter. Em menos de um segundo, a página aparece.' : 'Mas, entre o Enter e a página, o computador precisa descobrir uma coisa.';
+    return { html: dual(build, WIDE, TALL), caption };
+  }
+};
+
+// ---------- Tela 2 · mock: dig curto ----------
+const dig = {
+  id: 'dig', kind: 'mock', kicker: 'Na prática', title: 'A pergunta, feita num terminal', sources: ['dig', 'rfc5737'],
+  steps: [{ id: 'digitar', label: '', duration: 1.9 }, { id: 'resposta', label: '', duration: 1.1 }],
+  render({ state, time }) {
+    const script = [
+      [{ type: true, text: `dig ${CASE.name} +noall +answer`, at: .25, cps: 24 }],
+      [{ text: '; <<>> DiG 9.10.6 <<>> padaria.com.br +noall +answer', at: .1, cls: 'p' }, { text: `${CASE.name}.  300  IN  A  ${CASE.ip}`, at: .35, cls: 's', hl: .7 }]
+    ];
+    const caption = state.step === 0 ? 'O comando dig faz a mesma pergunta que o navegador faz: quem é padaria.com.br?' : `A resposta não é uma página: é um número, ${CASE.ip}.`;
+    return { html: K.terminal(state, time, script, { title: 'Terminal' }), caption };
+  }
+};
+
+// ---------- Tela 3 · explicar: endereço IP ----------
+const ip = {
+  id: 'ip', kind: 'explicar', kicker: 'Termo novo', title: 'Na internet, cada servidor tem um número', sources: ['rfc1035', 'rfc5737'],
+  steps: [{ id: 'numero', label: '', duration: 1.2 }, { id: 'nome', label: '', duration: 1.1 }],
+  render({ state, time }) {
+    const t0 = localT(state, time, 0), t1 = localT(state, time, 1);
+    const s = M.enter(t0, .1, .5), tag = M.enter(t0, .45, .5), nm = M.enter(t1, .1, .5), eq = M.enter(t1, .45, .45);
+    const rack = [0, 1, 2].map(i => `<rect x="60" y="${150 + i * 62}" width="170" height="50" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2.5"/><circle cx="200" cy="${175 + i * 62}" r="7" fill="var(--accent)"/>`).join('');
+    const visual = `<svg viewBox="0 0 560 370" role="img"><g ${K.rise(s)}>${rack}<text class="lab" x="145" y="355" font-size="22" text-anchor="middle" data-qa-text="servidor">servidor do site</text></g>
+      <g ${K.rise(tag)}><rect x="270" y="200" width="270" height="76" rx="16" fill="var(--warm-soft)" stroke="var(--warm)" stroke-width="3"/>
+        <text x="405" y="238" font-size="32" font-weight="760" fill="var(--ink)" text-anchor="middle" dominant-baseline="central" class="mono" data-qa-text="ip">${CASE.ip}</text>
+        <text class="lab" x="405" y="305" font-size="20" text-anchor="middle" data-qa-text="ilustrativo">valor ilustrativo</text></g>
+      <g ${K.rise(nm)}><text x="405" y="70" font-size="32" font-weight="700" fill="var(--accent-ink)" text-anchor="middle" data-qa-text="nome">${CASE.name}</text></g>
+      <g opacity="${eq.opacity.toFixed(3)}"><text x="405" y="140" font-size="40" font-weight="700" fill="var(--muted)" text-anchor="middle" dominant-baseline="central">=</text></g></svg>`;
+    const caption = state.step === 0 ? 'Esse número é o endereço do servidor onde o site está guardado.' : 'Nomes são para pessoas; a rede só sabe entregar para números.';
+    return { html: K.split({ say: 'Computadores se acham por um <span style="white-space:nowrap"><span class="sc-term">endereço IP</span>:</span> um número, como um telefone.', visual }), caption };
+  }
+};
+
+// ---------- Tela 4 · explicar: DNS como agenda ----------
+const dns = {
+  id: 'dns', kind: 'explicar', kicker: 'Termo novo', title: 'DNS: a agenda que troca nomes por números', sources: ['rfc1034'],
+  steps: [{ id: 'lista', label: '', duration: 1.3 }, { id: 'dividida', label: '', duration: 1.4 }],
+  render({ state, time }) {
+    const t0 = localT(state, time, 0), t1 = localT(state, time, 1), split = M.segment(t1, .15, 1.15, M.easeInOutCubic);
+    const rows = [['escola.com.br', '198.51.100.8'], [CASE.name, CASE.ip], ['livro.org', '192.0.2.15']];
+    const body = rows.map(([n, v], i) => {
+      const e = M.enter(t0, .1 + i * .14, .5), y0 = 60 + i * 92, y = M.lerp(y0, 20 + i * 132, split), x = M.lerp(20, [20, 70, 120][i], split);
+      const on = i === 1 && state.step === 0 && t0 > .8;
+      return `<g opacity="${e.opacity.toFixed(3)}" transform="translate(${x.toFixed(1)} ${(y + e.y).toFixed(1)})"><rect width="420" height="76" rx="${M.lerp(6, 16, split).toFixed(1)}" fill="${on ? 'var(--warm-soft)' : 'var(--surface)'}" stroke="${on ? 'var(--warm)' : 'var(--line)'}" stroke-width="${on ? 3 : 2}"/>
+        <text x="22" y="38" font-size="25" font-weight="650" fill="var(--ink)" dominant-baseline="central" data-qa-text="nome-${i}">${n}</text>
+        <text x="400" y="38" font-size="23" fill="var(--accent-ink)" text-anchor="end" dominant-baseline="central" class="mono" data-qa-text="num-${i}">${v}</text></g>`;
+    }).join('');
+    const frame = `<rect x="6" y="${M.lerp(40, 0, split)}" width="448" height="${M.lerp(310, 0, split)}" rx="18" fill="var(--bg)" opacity="${(1 - split).toFixed(3)}"/>`;
+    const tag = M.enter(t1, 1.1, .4);
+    const servers = [0, 1, 2].map(i => `<g opacity="${tag.opacity.toFixed(3)}"><rect x="${[460, 510, 560][i]}" y="${38 + i * 132}" width="18" height="40" rx="4" fill="var(--accent)"/></g>`).join('');
+    const visual = `<svg viewBox="0 0 600 400" role="img">${frame}${body}${servers}</svg>`;
+    const caption = state.step === 0 ? 'Pense numa agenda de contatos: o nome de um lado, o número do outro.' : 'Onde a comparação para: não existe uma agenda única. Ela é dividida entre muitos servidores.';
+    return { html: K.split({ say: 'O <span class="sc-term">DNS</span> responde: este nome corresponde a este número.', visual }), caption };
+  }
+};
+
+// ---------- Tela 5 · diagrama: a árvore de nomes ----------
+const TREE = { // coordenadas locais da árvore (640 × 450)
+  raiz: { x: 320, y: 40, t: '. raiz' }, org: { x: 100, y: 160, t: 'org' }, br: { x: 320, y: 160, t: 'br' }, com: { x: 540, y: 160, t: 'com' },
+  gov: { x: 180, y: 280, t: 'gov.br' }, combr: { x: 450, y: 280, t: 'com.br' }, loja: { x: 200, y: 400, t: 'loja.com.br' }, padaria: { x: 455, y: 400, t: 'padaria.com.br' }
+};
+const TREE_EDGES = [['raiz', 'org'], ['raiz', 'br'], ['raiz', 'com'], ['br', 'gov'], ['br', 'combr'], ['combr', 'loja'], ['combr', 'padaria']];
+const PATH = ['raiz', 'br', 'combr', 'padaria'];
+const arvore = {
+  id: 'arvore', kind: 'diagrama', kicker: 'Como é organizado', title: 'Os nomes formam uma árvore', sources: ['rfc1034', 'registrobr'],
+  steps: [{ id: 'ler', label: '', duration: 1.6 }, { id: 'arvore', label: '', duration: 2.2 }, { id: 'delegar', label: '', duration: 1.4 }],
+  render({ state, time }) {
+    const t0 = localT(state, time, 0), t1 = localT(state, time, 1), t2 = localT(state, time, 2);
+    const parts = ['padaria', 'com', 'br'];
+    const build = L => {
+      const nm = L.name, [ox, oy] = L.tree;
+      // O nome começa no centro (passo 0) e desliza para o lado quando a árvore entra (passo 1).
+      const move = state.step === 0 ? 0 : M.segment(t1, 0, .6, M.easeInOutCubic), e = M.enter(t0, 0, .45);
+      const cx = M.lerp(nm.start[0], nm.end[0], move), cy = M.lerp(nm.start[1], nm.end[1], move) + e.y, hw = nm.size * .56 * 7.2;
+      // Lido da direita para a esquerda: cada rótulo acende em ordem br → com → padaria.
+      const tone = i => { const lit = M.segment(t0, .3 + (2 - i) * .35, .55 + (2 - i) * .35); return lit > .5 && state.step === 0 ? 'var(--warm)' : 'var(--accent-ink)'; };
+      const name = `<text x="${cx}" y="${cy}" opacity="${e.opacity.toFixed(3)}" font-size="${nm.size}" font-weight="760" text-anchor="middle" dominant-baseline="central" data-qa-text="nome">${parts.map((p, i) => `<tspan fill="${tone(i)}">${p}</tspan>`).join('<tspan fill="var(--muted)">.</tspan>')}</text>`;
+      const arrowO = state.step === 0 ? M.enter(t0, .3, .5).opacity : 0, ay = cy + nm.size * .95;
+      const arrow = `<g opacity="${arrowO.toFixed(3)}"><line x1="${cx + hw}" y1="${ay}" x2="${cx - hw + 10}" y2="${ay}" stroke="var(--warm)" stroke-width="4" stroke-linecap="round"/><path d="M${cx - hw} ${ay} l18 -11 v22 z" fill="var(--warm)"/>
+        <text class="lab" x="${cx}" y="${ay + nm.size * .8}" font-size="${L.label + 4}" text-anchor="middle" data-qa-text="sentido">lido da direita para a esquerda</text></g>`;
+      const order = ['raiz', 'org', 'br', 'com', 'gov', 'combr', 'loja', 'padaria'];
+      const appear = id => M.enter(t1, .5 + order.indexOf(id) * .15, .5);
+      const onPath = id => PATH.includes(id);
+      const lit = state.step === 2 ? M.segment(t2, .1, 1.1) * 3 : 0; // quantas arestas do caminho já acenderam
+      const edges = TREE_EDGES.map(([a, b]) => {
+        const pa = TREE[a], pb = TREE[b], o = appear(b).opacity, k = PATH.indexOf(b) - 1;
+        const on = state.step === 2 && k >= 0 && lit >= k + .5 && onPath(a);
+        return `<line class="ed ${on ? 'on' : ''}" x1="${ox + pa.x}" y1="${oy + pa.y + 26}" x2="${ox + pb.x}" y2="${oy + pb.y - 26}" opacity="${o.toFixed(3)}"/>`;
+      }).join('');
+      const tags = state.step === 2 ? PATH.slice(1).map((b, k) => {
+        const a = PATH[k], pa = TREE[a], pb = TREE[b], e = M.enter(t2, .35 + k * .33, .4, 6);
+        return `<text class="noteW" x="${ox + (pa.x + pb.x) / 2 + (k === 1 ? 44 : 18)}" y="${oy + (pa.y + pb.y) / 2 - (k === 1 ? 10 : 0) + e.y}" font-size="${L.label}" opacity="${e.opacity.toFixed(3)}" data-qa-text="indica-${k}">indica</text>`;
+      }).join('') : '';
+      const nodes = Object.entries(TREE).map(([id, n]) => {
+        const e = appear(id), w = n.t.length * L.node * .6 + 36, on = state.step >= 1 && onPath(id);
+        return `<g opacity="${(e.opacity * (onPath(id) ? 1 : .55)).toFixed(3)}" transform="translate(0 ${e.y.toFixed(2)})"><rect x="${ox + n.x - w / 2}" y="${oy + n.y - 26}" width="${w}" height="52" rx="26" class="pill ${on && (state.step === 2 || id === 'raiz') ? 'on' : ''}"/>
+          <text class="pt ${on && (state.step === 2 || id === 'raiz') ? 'on' : ''}" x="${ox + n.x}" y="${oy + n.y}" font-size="${L.node}" data-qa-text="no-${id}">${n.t}</text></g>`;
+      }).join('');
+      return name + arrow + edges + nodes + tags;
+    };
+    const WIDE = { w: 1120, h: 520, name: { start: [560, 230], end: [215, 250], size: 52 }, tree: [470, 30], label: 22, node: 26 };
+    const TALL = { w: 640, h: 640, name: { start: [320, 280], end: [320, 50], size: 48 }, tree: [0, 170], label: 22, node: 26 };
+    const caption = state.step === 0 ? 'Leia o nome da direita para a esquerda: br, depois com, depois padaria.' : state.step === 1 ? 'No topo fica a raiz. Abaixo dela, o br; depois com.br; depois o site.' : 'Cada nível não sabe tudo: só sabe quem cuida de cada nome logo abaixo dele.';
+    return { html: dual(build, WIDE, TALL), caption };
+  }
+};
+
+// ---------- Layouts das telas de busca (largo e alto) ----------
+const BUSCA_WIDE = { w: 1090, h: 590, flow: 'h', title: 28, sub: 20, noteSize: 24,
+  you: { x: 130, y: 280, w: 220, h: 96 }, res: { x: 480, y: 280, w: 240, h: 96 },
+  srv: [{ x: 930, y: 75, w: 300, h: 96 }, { x: 930, y: 280, w: 300, h: 96 }, { x: 930, y: 485, w: 300, h: 96 }] };
+const BUSCA_TALL = { w: 600, h: 840, flow: 'v', title: 28, sub: 22, noteSize: 24,
+  you: { x: 300, y: 60, w: 220, h: 90 }, res: { x: 300, y: 330, w: 260, h: 96 },
+  srv: [{ x: 100, y: 690, w: 184, h: 90 }, { x: 300, y: 690, w: 184, h: 90 }, { x: 500, y: 690, w: 184, h: 90 }] };
+const SRV = [{ title: 'Raiz', sub: 'topo da árvore', qa: 'raiz' }, { title: '.br', sub: 'cuida do com.br', qa: 'br' }, { title: 'Autoritativo', sub: CASE.ns, qa: 'aut' }];
+const REPLY = ['indica o .br', 'indica o ns1', CASE.ip];
+// Posição das notas: abaixo da caixa no layout largo; abaixo também no alto (servidores na base).
+const below = (b, L) => ({ x: b.x, y: b.y + b.h / 2 + L.noteSize * 1.1, anchor: 'middle' });
+
+// ---------- Tela 6 · explicar: os dois papéis ----------
+const papeis = {
+  id: 'papeis', kind: 'explicar', kicker: 'Termos novos', title: 'Dois papéis: quem pergunta e quem sabe', sources: ['rfc1034'],
+  steps: [{ id: 'resolvedor', label: '', duration: 1.2 }, { id: 'autoritativo', label: '', duration: 1.1 }],
+  render({ state, time }) {
+    const t0 = localT(state, time, 0), t1 = localT(state, time, 1), step = state.step;
+    const e = [0, 1, 2].map(i => M.enter(t0, .05 + i * .14, .5)), ea = M.enter(t1, .05, .5);
+    const build = L => {
+      const [you, res, aut] = L.b, p1 = ends(L, you, res), p2 = ends(L, res, aut), autO = (e[2].opacity * (step === 0 ? .4 : 1)).toFixed(3), n = L.ns;
+      return `<g opacity="${e[1].opacity.toFixed(3)}">${line(p1, step === 0)}</g>
+        <g ${K.rise(e[0])}>${box(you, { title: 'Você', qa: 'voce', L })}</g>
+        <g ${K.rise(e[1])}>${box(res, { title: 'Resolvedor', on: step === 0, qa: 'resolvedor', L })}</g>
+        <g opacity="${autO}"><line class="ed ${step === 1 ? 'on' : ''}" x1="${p2[0].x}" y1="${p2[0].y}" x2="${p2[1].x}" y2="${p2[1].y}" stroke-dasharray="2 10"/></g>
+        <g opacity="${autO}">${box(aut, { title: 'Autoritativo', on: step === 1, qa: 'autoritativo', L })}</g>
+        <g opacity="${ea.opacity.toFixed(3)}"><text class="note mono" x="${n.x}" y="${n.y + ea.y}" font-size="${L.sub}" text-anchor="middle" data-qa-text="ns1">${CASE.ns}</text></g>`;
+    };
+    // Um único desenho vertical: Você → Resolvedor → Autoritativo, legível nos dois tamanhos.
+    const L = { w: 420, h: 486, flow: 'v', title: 30, sub: 24, b: [{ x: 210, y: 50, w: 200, h: 84 }, { x: 210, y: 210, w: 300, h: 90 }, { x: 210, y: 370, w: 300, h: 90 }], ns: { x: 210, y: 450 } };
+    const visual = K.diagram(build(L), { w: L.w, h: L.h });
+    const say = step === 0 ? 'O <span class="sc-term">resolvedor</span> faz as perguntas por você.' : 'O servidor <span class="sc-term">autoritativo</span> guarda a resposta oficial de um nome.';
+    const caption = step === 0 ? 'Seu computador entrega a pergunta a ele e espera. Em geral, ele é do seu provedor de internet.' : `O de padaria.com.br se chama ${CASE.ns}. É ali que o número está anotado.`;
+    return { html: K.split({ say, visual }), caption };
+  }
+};
+
+// ---------- Tela 7 · diagrama: a busca completa ----------
+// Modelo: passo 2+j = pergunta ao servidor j. Ida 0,2–1,0 s; chegada (resposta pronta) em 1,0 s; volta 1,3–2,1 s.
+const TRIP = { go: [.2, 1.0], back: [1.3, 2.1], note: 1.05 };
+const busca = {
+  id: 'busca', kind: 'diagrama', kicker: 'O mecanismo', title: 'A busca, pergunta por pergunta', sources: ['rfc1034', 'rootservers', 'registrobr'],
+  steps: [{ id: 'inicio', label: '', duration: .9 }, { id: 'pergunta', label: '', duration: 1.3 }, { id: 'raiz', label: '', duration: 2.3 }, { id: 'br', label: '', duration: 2.3 }, { id: 'autoritativo', label: '', duration: 2.3 }, { id: 'entrega', label: '', duration: 1.8 }],
+  model(state, time) {
+    const asked = [0, 1, 2].map(j => state.step > 2 + j || (state.step === 2 + j && time >= TRIP.go[1]));
+    return { asked, count: asked.filter(Boolean).length, delivered: state.step === 5 && time >= 1.1 };
+  },
+  render({ state, time }) {
+    const m = this.model(state, time), s = state.step;
+    const build = L => {
+      const e = k => M.enter(localT(state, time, 0), .05 + k * .1, .5);
+      const pYou = ends(L, L.you, L.res), pSrv = L.srv.map(b => ends(L, L.res, b));
+      let out = `<g opacity="${e(1).opacity.toFixed(3)}">${line(pYou, s === 1 || s === 5)}</g>` + pSrv.map((p, j) => `<g opacity="${e(2 + j).opacity.toFixed(3)}">${line(p, s === 2 + j)}</g>`).join('');
+      out += `<g ${K.rise(e(0))}>${box(L.you, { title: 'Você', sub: 'navegador', on: s === 5 && m.delivered, qa: 'voce', L })}</g>`;
+      out += `<g ${K.rise(e(1))}>${box(L.res, { title: 'Resolvedor', on: s === 1 && time >= 1.0 || (s >= 2 && s <= 4), qa: 'resolvedor', L })}</g>`;
+      out += L.srv.map((b, j) => `<g ${K.rise(e(2 + j))}>${box(b, { ...SRV[j], sub: L.flow === 'h' ? SRV[j].sub : '', on: s === 2 + j && time >= TRIP.go[1] - .05 && time < TRIP.back[1], qa: SRV[j].qa, L })}</g>`).join('');
+      // Notas persistentes: o que cada servidor respondeu.
+      out += L.srv.map((b, j) => { if (!m.asked[j]) return ''; const p = below(b, L), t = localT(state, time, 2 + j); return note(p.x, p.y, REPLY[j], t, TRIP.note, { size: L.noteSize, cls: j === 2 ? 'noteW mono' : 'note', qa: `resposta-${j}` }); }).join('');
+      // Contador de perguntas feitas pelo resolvedor.
+      if (s >= 2) {
+        const c = L.flow === 'h' ? { x: L.res.x, y: L.res.y + L.res.h / 2 + 34, a: 'middle' } : { x: L.res.x + L.res.w / 2 + 18, y: L.res.y, a: 'start' };
+        out += `<text class="lab" x="${c.x}" y="${c.y}" font-size="${L.noteSize - 2}" text-anchor="${c.a}" data-qa-text="contador" data-value="${m.count}">${m.count} ${m.count === 1 ? 'pergunta' : 'perguntas'}</text>`;
+      }
+      if (s === 5) { const p = L.flow === 'h' ? { x: L.you.x, y: L.you.y + L.you.h / 2 + 34, a: 'middle' } : { x: L.you.x + L.you.w / 2 + 18, y: L.you.y, a: 'start' }; out += note(p.x, p.y, CASE.ip, time, 1.1, { size: L.noteSize, cls: 'noteW mono', anchor: p.a, qa: 'entregue' }); }
+      // Mensagem em trânsito.
+      if (s === 1) out += token(pYou, M.segment(time, .2, 1.0));
+      if (s >= 2 && s <= 4) { const p = pSrv[s - 2]; out += token(p, M.segment(time, ...TRIP.go)) + token(p, M.segment(time, ...TRIP.back), true) + ring(L.srv[s - 2], time, TRIP.go[1]); }
+      if (s === 5) out += token(pYou, M.segment(time, .2, 1.1), true);
+      return out;
+    };
+    const arrived = time >= TRIP.go[1];
+    const caption = [
+      'Imagine um resolvedor recém-ligado, sem nada guardado. Ele começa pelo topo da árvore.',
+      'O navegador pergunta ao resolvedor: qual é o número de padaria.com.br?',
+      arrived ? 'A raiz não sabe o número, mas indica: pergunte aos servidores do .br.' : 'O resolvedor leva a pergunta à raiz.',
+      arrived ? 'O .br também não sabe, mas indica quem sabe: o autoritativo do site.' : 'Agora ele pergunta aos servidores do .br.',
+      arrived ? `O autoritativo responde com o número oficial: ${CASE.ip}.` : `Por fim, ele pergunta a ${CASE.ns}.`,
+      m.delivered ? 'O resolvedor devolve o número. Foram 3 perguntas; agora o navegador pode chamar o site.' : 'O resolvedor leva a resposta de volta ao navegador.'
+    ][s];
+    return { html: dual(build, BUSCA_WIDE, BUSCA_TALL), caption };
+  }
+};
+
+// ---------- Tela 8 · mock: dig +trace ----------
+const trace = {
+  id: 'trace', kind: 'mock', kicker: 'Na prática', title: 'O mesmo caminho, visto num terminal', sources: ['dig', 'rootservers', 'registrobr'],
+  steps: [{ id: 'digitar', label: '', duration: 1.9 }, { id: 'raiz', label: '', duration: 1.2 }, { id: 'br', label: '', duration: 1.0 }, { id: 'resposta', label: '', duration: 1.0 }],
+  render({ state, time }) {
+    const script = [
+      [{ type: true, text: `dig +trace ${CASE.name}`, at: .2, cps: 24 }, { text: '.  518400  IN  NS  a.root-servers.net.', at: 1.35 }, { text: '.  518400  IN  NS  m.root-servers.net.', at: 1.5 }],
+      [{ text: '', at: 0 }, { text: 'br.  172800  IN  NS  a.dns.br.', at: .15 }, { text: 'br.  172800  IN  NS  b.dns.br.', at: .3 }, { text: ';; Received 404 bytes from 170.247.170.2#53(b.root-servers.net) in 23 ms', at: .5, cls: 'p', hl: .8 }],
+      [{ text: '', at: 0 }, { text: `${CASE.name}.  3600  IN  NS  ${CASE.ns}.`, at: .15 }, { text: ';; Received 98 bytes from 200.219.148.10#53(a.dns.br) in 11 ms', at: .35, cls: 'p', hl: .6 }],
+      [{ text: '', at: 0 }, { text: `${CASE.name}.  300  IN  A  ${CASE.ip}`, at: .15, cls: 's', hl: .45 }, { text: `;; Received 59 bytes from 203.0.113.53#53(${CASE.ns}) in 9 ms`, at: .35, cls: 'p' }]
+    ];
+    // Um foco por vez: só o trecho do passo atual fica destacado.
+    script.forEach((lines, k) => lines.forEach(l => { if (k !== state.step) delete l.hl; }));
+    const caption = ['Com +trace, o dig refaz a busca desde o topo. Primeiro, ele lista os servidores raiz.', 'A raiz indicou os servidores do .br. A última linha diz quem respondeu.', `O .br indicou ${CASE.ns}, o autoritativo do site.`, 'E o autoritativo respondeu com o número. É a mesma cadeia do desenho.'][state.step];
+    return { html: K.terminal(state, time, script, { title: 'Terminal' }), caption };
+  }
+};
+
+// ---------- Tela 9 · prática: o que a raiz responde ----------
+const prever = K.quiz({
+  id: 'prever', kicker: 'Sua vez', title: 'Preveja a resposta da raiz', sources: ['rfc1034'],
+  question: 'O resolvedor pergunta à raiz pelo número de loja.com.br. O que a raiz responde?', hint: 'Lembre o que cada nível da árvore sabe.',
+  correct: 'indica', options: [{ value: 'indica', label: 'Pergunte aos servidores do .br' }, { value: 'ip', label: 'O número de loja.com.br' }, { value: 'nao', label: 'Esse nome não existe' }],
+  feedback: {
+    indica: 'Isso. A raiz só sabe quem cuida de cada final, como o .br. Ela indica esses servidores, e o resolvedor segue descendo a árvore.',
+    ip: 'A raiz não guarda números de sites: seria uma lista gigante. Ela só sabe quem cuida do .br, e indica esses servidores.',
+    nao: 'A raiz não sabe se loja.com.br existe: isso é com os níveis de baixo. Ela só indica os servidores do .br.'
+  }
+});
+
+// ---------- Tela 10 · diagrama interativo: cache e TTL ----------
+const CACHE_WIDE = { ...BUSCA_WIDE, card: { x: 255, y: 6, w: 420, h: 204 }, cardFs: 22 };
+const CACHE_TALL = { ...BUSCA_TALL, h: 690, you: { x: 150, y: 50, w: 220, h: 90 }, res: { x: 150, y: 290, w: 260, h: 96 }, card: { x: 290, y: 110, w: 306, h: 214 }, cardFs: 25,
+  srv: [{ x: 100, y: 590, w: 184, h: 90 }, { x: 300, y: 590, w: 184, h: 90 }, { x: 500, y: 590, w: 184, h: 90 }], youNote: 'right' };
+const CTRIP = { ask: [.2, .9], hit: [1.1, 1.8], aut: [1.0, 1.5], autBack: [1.6, 2.0], miss: [2.05, 2.5] };
+const cache = {
+  id: 'cache', kind: 'diagrama', kicker: 'Cache', title: 'Da segunda vez, a resposta já está guardada', sources: ['rfc1034'],
+  initialInputs: { min: 2 },
+  controls: [{ key: 'min', type: 'range', label: 'Minutos depois da 1ª busca', min: 0, max: 15, step: 1, format: v => `${v} min` }],
+  auditCases: [{ id: 'zero', inputs: { min: 0 } }, { id: 'quase', inputs: { min: 4 } }, { id: 'venceu', inputs: { min: 5 } }, { id: 'maximo', inputs: { min: 15 } }],
+  steps: [{ id: 'guardado', label: '', duration: .9 }, { id: 'vizinha', label: '', duration: 3.1 }],
+  model(state, time) {
+    const min = state.inputs.min, expired = min >= CASE.ttlA, s = state.step;
+    const refreshed = s === 1 && expired && time >= CTRIP.aut[1];
+    const answered = s === 1 && time >= (expired ? CTRIP.miss[1] : CTRIP.hit[1]);
+    return { min, expired, refreshed, answered, count: refreshed ? 1 : 0, leftA: refreshed ? CASE.ttlA : Math.max(0, CASE.ttlA - min), leftNS: CASE.ttlNS - min };
+  },
+  render({ state, time }) {
+    const m = this.model(state, time), s = state.step, t1 = localT(state, time, 1);
+    const build = L => {
+      const e = k => M.enter(localT(state, time, 0), .05 + k * .1, .5), c = L.card, fs = L.cardFs;
+      const pYou = ends(L, L.you, L.res), pAut = ends(L, L.res, L.srv[2]);
+      let out = `<g opacity="${e(1).opacity.toFixed(3)}">${line(pYou, s === 1)}</g>` + L.srv.map((b, j) => `<g opacity="${e(2 + j).opacity.toFixed(3)}">${line(ends(L, L.res, b), s === 1 && j === 2 && m.expired && t1 >= CTRIP.aut[0] && t1 < CTRIP.autBack[1])}</g>`).join('');
+      out += `<g ${K.rise(e(0))}>${box(L.you, { title: 'Vizinha', sub: 'mesmo resolvedor', on: m.answered, qa: 'vizinha', L })}</g>`;
+      out += `<g ${K.rise(e(1))}>${box(L.res, { title: 'Resolvedor', on: s === 1 && t1 >= CTRIP.ask[1] && !m.answered, qa: 'resolvedor', L })}</g>`;
+      out += L.srv.map((b, j) => `<g opacity="${(j === 2 && m.refreshed ? 1 : .4) * e(2 + j).opacity}">${box(b, { ...SRV[j], sub: L.flow === 'h' ? SRV[j].sub : '', on: j === 2 && s === 1 && m.expired && t1 >= CTRIP.aut[1] - .05 && t1 < CTRIP.autBack[1], qa: SRV[j].qa, L })}</g>`).join('');
+      // Cartão "memória do resolvedor": duas respostas guardadas, cada uma com seu TTL.
+      const ce = e(2), rowA = c.y + 64, rowN = c.y + 146, bar = (y, left, total) => `<rect x="${c.x + 20}" y="${y + 18}" width="${c.w - 40}" height="8" rx="4" fill="var(--line)"/><rect x="${c.x + 20}" y="${y + 18}" width="${((c.w - 40) * left / total).toFixed(1)}" height="8" rx="4" fill="${left > 0 ? 'var(--accent)' : 'var(--faint)'}"/>`;
+      const aLabel = m.refreshed ? 'renovado: TTL 5 min' : m.leftA > 0 ? `TTL 5 min · resta ${m.leftA} min` : 'TTL 5 min · venceu';
+      out += `<g ${K.rise(ce)}><rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="16" fill="var(--bg)" stroke="var(--line)" stroke-width="2"/>
+        <text class="lab" x="${c.x + 20}" y="${c.y + 24}" font-size="${fs - 2}" data-qa-text="memoria">memória do resolvedor</text>
+        <text x="${c.x + 20}" y="${rowA}" font-size="${fs}" font-weight="650" fill="${m.leftA > 0 ? 'var(--ink)' : 'var(--faint)'}" dominant-baseline="central" ${m.leftA > 0 ? '' : 'text-decoration="line-through"'} data-qa-text="linha-a">número → ${CASE.ip}</text>
+        ${bar(rowA, m.leftA, CASE.ttlA)}<text class="lab" x="${c.x + c.w - 20}" y="${rowA + 40}" font-size="${fs - 2}" text-anchor="end" data-qa-text="ttl-a">${aLabel}</text>
+        <text x="${c.x + 20}" y="${rowN}" font-size="${fs}" font-weight="650" fill="var(--ink)" dominant-baseline="central" data-qa-text="linha-ns">autoritativo → ns1</text>
+        <text class="lab" x="${c.x + c.w - 20}" y="${rowN + 32}" font-size="${fs - 2}" text-anchor="end" data-qa-text="ttl-ns">TTL 1 h · resta ${m.leftNS} min</text></g>`;
+      if (s === 1) {
+        const cpos = L.flow === 'h' ? { x: L.res.x, y: L.res.y + L.res.h / 2 + 34, a: 'middle' } : { x: L.card.x, y: L.card.y + L.card.h + 30, a: 'start' };
+        if (t1 >= CTRIP.ask[1]) out += `<text class="lab" x="${cpos.x}" y="${cpos.y}" font-size="${L.noteSize - 2}" text-anchor="${cpos.a}" data-qa-text="contador" data-value="${m.count}">${m.count} ${m.count === 1 ? 'pergunta' : 'perguntas'}</text>`;
+        out += token(pYou, M.segment(t1, ...CTRIP.ask));
+        if (!m.expired) out += token(pYou, M.segment(t1, ...CTRIP.hit), true);
+        else out += token(pAut, M.segment(t1, ...CTRIP.aut)) + ring(L.srv[2], t1, CTRIP.aut[1]) + token(pAut, M.segment(t1, ...CTRIP.autBack), true) + token(pYou, M.segment(t1, ...CTRIP.miss), true);
+        if (m.answered) { const p = L.youNote === 'right' ? { x: L.you.x + L.you.w / 2 + 14, y: L.you.y, a: 'start' } : { x: L.you.x, y: L.you.y + L.you.h / 2 + 34, a: 'middle' }; out += note(p.x, p.y, CASE.ip, t1, m.expired ? CTRIP.miss[1] : CTRIP.hit[1], { size: L.noteSize, cls: 'noteW mono', anchor: p.a, qa: 'entregue' }); }
+      }
+      return out;
+    };
+    let caption;
+    if (s === 0) caption = 'O resolvedor guarda cada resposta pelo tempo do TTL, que o dono do nome escolhe. Mude os minutos e continue.';
+    else if (!m.answered) caption = `${m.min} min depois, sua vizinha pede padaria.com.br ao mesmo resolvedor.`;
+    else caption = m.expired ? `Com ${m.min} min, o número venceu. Mas ele lembra quem é o autoritativo: só 1 pergunta.` : `Com ${m.min} min, o número ainda vale: o resolvedor responde na hora, com 0 perguntas.`;
+    return { html: dual(build, CACHE_WIDE, CACHE_TALL), caption };
+  }
+};
+
+// ---------- Tela 11 · prática: TTL ----------
+const ttl = K.quiz({
+  id: 'ttl', kicker: 'Sua vez', title: 'Quantas perguntas desta vez?', sources: ['rfc1034'],
+  question: 'O número de padaria.com.br tem TTL de 300 s. Sua vizinha abre o site 3 minutos depois de você, no mesmo resolvedor. Quantas perguntas ele faz?', hint: '300 segundos são 5 minutos.',
+  correct: '0', options: [{ value: '0', label: 'Nenhuma' }, { value: '1', label: '1 pergunta' }, { value: '3', label: '3 perguntas' }],
+  feedback: {
+    '0': 'Isso. 300 s são 5 minutos; aos 3 minutos a resposta guardada ainda vale. O resolvedor responde na hora, sem perguntar a ninguém.',
+    '1': 'Uma pergunta ao autoritativo só seria preciso depois de 5 minutos, quando o número vence. Aos 3 minutos ele ainda vale: nenhuma pergunta.',
+    '3': 'Três perguntas é a busca sem nada guardado. Aqui a resposta tem 3 minutos e vale 5: o resolvedor responde direto, sem perguntar.'
+  }
+});
+
+// ---------- Tela 12 · prática de transferência: um erro de DNS ----------
+const erro = K.quiz({
+  id: 'erro', kicker: 'Sua vez', title: 'Onde a busca parou?', sources: ['chromium', 'rfc1035', 'dig'],
+  question: 'Você digitou padaira.com.br por engano e viu este código. O que aconteceu?', hint: 'NXDOMAIN quer dizer “nome inexistente”.',
+  correct: 'br', options: [{ value: 'br', label: 'O .br disse que o nome não existe' }, { value: 'site', label: 'O site da padaria caiu' }, { value: 'net', label: 'Sua internet caiu' }],
+  feedback: {
+    br: 'Isso. A busca chegou ao .br, que não tem ninguém cuidando de padaira.com.br, e respondeu NXDOMAIN. Nenhum site chegou a ser chamado.',
+    site: 'Com o site fora do ar, o DNS ainda daria o número, e o erro seria outro. NXDOMAIN quer dizer que o nome nem existe: quem respondeu foi o .br.',
+    net: 'Sem internet, nenhum servidor responderia. Aqui houve uma resposta clara, NXDOMAIN: o .br disse que padaira.com.br não existe.'
+  }
+});
+{ // A prática mostra a tela de erro reconstruída acima da pergunta.
+  const base = erro.render;
+  erro.render = ctx => {
+    const r = base(ctx), e = M.enter(ctx.state.step === 0 ? ctx.time : 9, 0, .5);
+    const mock = `<div class="err" style="${e.style}" data-qa-text="tela-erro"><div class="err-bar"><span>padaira.com.br</span><em>simulação</em></div><div class="err-body"><b>Esta página não abriu</b><code>DNS_PROBE_FINISHED_NXDOMAIN</code></div></div>`;
+    return { ...r, html: r.html.replace('<div class="sc-center">', `<div class="sc-center">${mock}`) };
+  };
+}
+
+// ---------- Tela 13 · resumo ----------
+const resumo = {
+  id: 'resumo', kind: 'resumo', kicker: 'Resumo', title: 'Três ideias para levar',
+  steps: [{ id: 'cards', label: '', duration: 1.3 }],
+  render({ time }) {
+    return { html: K.cards([
+      { icon: '⇄', text: 'O DNS troca um nome pelo número do servidor.', sub: 'Esse número é o endereço IP.' },
+      { icon: '↓', text: 'O resolvedor desce a árvore: raiz, .br, autoritativo.', sub: 'Cada nível indica o próximo.' },
+      { icon: '◷', text: 'Respostas ficam guardadas pelo tempo do TTL.', sub: 'Por isso a segunda visita é rápida.' }
+    ], time), caption: 'Na próxima vez que um site abrir, você sabe o que aconteceu antes.' };
+  }
+};
+
+const SOURCES = [
+  { id: 'rfc1034', title: 'RFC 1034 — Domain Names: Concepts and Facilities', url: 'https://www.rfc-editor.org/rfc/rfc1034', note: 'Árvore de nomes, resolvedores, indicações e TTL (§2.3, §2.4, §3.1, §3.6). Consultada em 20/10/2026.' },
+  { id: 'rfc1035', title: 'RFC 1035 — Domain Names: Implementation and Specification', url: 'https://www.rfc-editor.org/rfc/rfc1035', note: 'Registro A (endereço IPv4) e código de resposta “nome inexistente” (NXDOMAIN).' },
+  { id: 'rootservers', title: 'root-servers.org', url: 'https://root-servers.org/', note: '13 identidades de servidores raiz (a até m), operadas por 12 organizações.' },
+  { id: 'registrobr', title: 'Registro.br', url: 'https://registro.br/', note: 'Os servidores a–f.dns.br respondem pelo .br e pelo com.br (conferido com dig em 20/10/2026).' },
+  { id: 'rfc5737', title: 'RFC 5737 — Endereços IPv4 reservados para documentação', url: 'https://www.rfc-editor.org/rfc/rfc5737', note: '203.0.113.0/24 é reservado para exemplos: o número da aula é ilustrativo.' },
+  { id: 'dig', title: 'dig (BIND 9) — manual', url: 'https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility', note: 'Formato das linhas executado com DiG 9.10.6. padaria.com.br e ns1.padaria.com.br são fictícios; saída reduzida.' },
+  { id: 'chromium', title: 'Chromium — localized_error.cc', url: 'https://source.chromium.org/chromium/chromium/src/+/main:components/error_page/common/localized_error.cc', note: 'O código DNS_PROBE_FINISHED_NXDOMAIN existe no Chromium. O texto da tela de erro é uma reconstrução.' }
+];
+window.lesson = LessonPlayer.create({ root: '#lesson', title: 'Como funciona o DNS', lang: 'pt-BR', sources: SOURCES,
+  slides: [abertura, dig, ip, dns, arvore, papeis, busca, trace, prever, cache, ttl, erro, resumo] });
+</script></body></html>

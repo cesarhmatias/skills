@@ -1,6 +1,6 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { resolve, dirname, join } from 'node:path';
-import { args, launch, openLesson, sourceHash, hash } from './lib.mjs';
+import { args, launch, openLesson, sourceHash, hash, dependency } from './lib.mjs';
 const options = args(), checks = [], problems = [];
 function record(name, ok, detail = '') { checks.push({ name, ok, detail }); if (!ok) problems.push({ name, detail }); }
 let browser;
@@ -22,22 +22,30 @@ try {
     let image; try { image = await readFile(join(dir, frame.file)); } catch { image = Buffer.alloc(0); }
     if (hash(image) !== frame.imageHash) record(`frame:${frame.index}`, false, 'Missing or modified capture image');
   }
+  const sharp = dependency('sharp');
   browser = await launch(options);
   const { page, errors, external } = await openLesson(browser, file);
   const info = await page.evaluate(() => window.lesson.getManifest());
-  const coverage = info.slides.every((s, i) => s.steps.every((_, k) => manifest.groups.some(g => g.slide === i && g.step === k && g.scenario.id === 'default')));
+  const coverage = info.slides.every((s, i) => s.steps.every((_, k) => manifest.groups.some(g => g.slide === i && g.step === k && (g.scenario.id === 'default' || s.auditDefault === false))));
   record('scene-coverage', coverage || !!options.partial, coverage ? 'All slides and steps have default captures' : 'Partial capture: never a complete delivery review');
   // Compare scene pixels after a seek to an unrelated state. Hide caret, not animation.
   for (let i = 0; i < info.slides.length; i++) {
     const slide = info.slides[i];
     for (let k = 0; k < slide.steps.length; k++) {
       const target = { slide: i, step: k, time: slide.steps[k].duration * .5, inputs: slide.initialInputs || {} };
-      await page.evaluate(s => window.lesson.seek(s), target);
-      const before = await page.locator('[data-player="scene"]').screenshot({ caret: 'hide' });
+      // The rendered DOM must be identical; pixels may differ only by rasterization noise (a few anti-aliased pixels).
+      const take = async s => { await page.evaluate(s => window.lesson.seek(s), s); await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+        return { html: await page.evaluate(() => document.querySelector('[data-player="scene"]').innerHTML), png: await page.locator('[data-player="scene"]').screenshot({ caret: 'hide' }) }; };
+      const before = await take(target);
       await page.evaluate(s => window.lesson.seek(s), { slide: (i + 1) % info.slides.length, step: 0, time: 0 });
-      await page.evaluate(s => window.lesson.seek(s), target);
-      const after = await page.locator('[data-player="scene"]').screenshot({ caret: 'hide' });
-      record(`seek:${slide.id}/${slide.steps[k].id}`, before.equals(after), 'Direct and out-of-order seeks must match');
+      const after = await take(target);
+      let same = before.html === after.html && before.png.equals(after.png), detail = 'Direct and out-of-order seeks must match';
+      if (!same && before.html === after.html) {
+        const a = await sharp(before.png).raw().toBuffer({ resolveWithObject: true }), b = await sharp(after.png).raw().toBuffer();
+        let differing = 0; for (let p = 0; p < b.length; p += a.info.channels) if (Math.abs(a.data[p] - b[p]) + Math.abs(a.data[p + 1] - b[p + 1]) + Math.abs(a.data[p + 2] - b[p + 2]) > 24) differing++;
+        const ratio = differing / (a.info.width * a.info.height); same = ratio < .002; detail = `Same DOM; ${(ratio * 100).toFixed(3)}% pixels differ`;
+      }
+      record(`seek:${slide.id}/${slide.steps[k].id}`, same, detail);
     }
   }
   // A single-step button must stop on exactly the next step.

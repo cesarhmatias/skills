@@ -92,23 +92,63 @@ O verificador lê marcações do HTML:
 - `data-qa-scroll`: região que intencionalmente permite leitura por rolagem.
 - `data-qa-allow-overlap`: exceção local acompanhada de um motivo no valor.
 
+Códigos registrados por frame:
+
+| Código | Significado |
+|---|---|
+| `TEXT_OVERLAP` | Dois textos marcados se sobrepõem |
+| `OUTSIDE_BOUNDARY` / `OUTSIDE_PAGE_WIDTH` | Texto fora da cena ou da largura da página; regiões `data-qa-scroll` são isentas |
+| `TEXT_CLIPPED` | Texto ultrapassa um ancestral que corta conteúdo, inclusive o viewport de um `<svg>` |
+| `TEXT_TOO_SMALL` | Fonte renderizada abaixo de `--min-font` (padrão 11 px), já aplicada a escala do SVG |
+| `CONTROLS_BELOW_FOLD` | Em viewport de desktop (≥ 1000×700), o botão Continuar fica abaixo da dobra |
+| `TITLE_TOO_LONG` / `CAPTION_TOO_LONG` | Título > 12 palavras; frase do passo > 30 palavras |
+| `TYPE_SIZES` | Mais de 4 degraus de tamanho de texto na cena (tamanhos a até ~18% contam como o mesmo degrau) |
+| `TEXT_COLORS` / `FONT_FAMILIES` | Mais de 4 cores de texto; mais de uma família fora do mono |
+| `TEXT_WALL` | Texto pintado na cena acima de ~120 palavras (prática 140, resumo 80); mocks isentos |
+| `SCENE_SPARSE` | No estado final da tela, o conteúdo ocupa menos de ~45% da cena (mocks: 30%) |
+| `PAGE_HORIZONTAL_OVERFLOW` | A página inteira rola na horizontal |
+| `FOCAL_CROPPED` | Objeto focal cortado pela região |
+| `UNCONTROLLED_ANIMATION` | Animação CSS/Web Animations fora do controle do seek |
+
+`TEXT_TOO_SMALL` existe porque um SVG com viewBox fixo “cabe” no celular reduzindo rótulos a 4–6 px. Isso não é responsividade.
+
 Marcações não dispensam inspeção. O verificador detecta cortes e colisões básicas de retângulos; não reconhece sozinho toda sobreposição entre formas arbitrárias ou erro conceitual num desenho.
 
 Não marque a cena inteira como exceção para conseguir um relatório verde. Se uma colisão for intencional, registre qual elemento pertence a qual estrutura e inspecione o resultado.
 
-## 6. Gerar folhas de contato
+## 6. Storyboard: a primeira revisão
+
+```bash
+node scripts/storyboard.mjs work/qa/kf/manifest.json
+node scripts/storyboard.mjs work/qa/kf/manifest.json --viewport 390x844
+node scripts/storyboard.mjs work/qa/kf/manifest.json --scenario errada
+```
+
+O storyboard junta o estado final de cada passo, quatro por folha, num tamanho em que o texto pode ser julgado. Leia-o como o aluno: tela por tela, aplicando o checklist de [experiência](00-experiencia-do-aluno.md#9-checklist-da-experiência-rode-no-storyboard). A maioria dos defeitos que importam aparece aqui: texto demais, termo indefinido, desenho pequeno, buraco na composição, foco ambíguo, celular ilegível.
+
+Revise desktop e celular, e os cenários de erro das práticas. Só depois passe às folhas de contato do motion.
+
+## 7. Gerar folhas de contato
 
 ```bash
 node scripts/contact_sheet.mjs work/qa/motion/manifest.json
 ```
 
-O padrão representa todos os frames, sem pular nenhum (`stride=1`). Cada tile mostra índice e tempo local. `sheets.json` relaciona folhas, grupos e frames.
+O padrão representa todos os frames, sem pular nenhum (`stride=1`), recortados na região da cena (`--crop scene`). Cada tile mostra índice, tempo local e os códigos de problema do frame. `sheets.json` relaciona folhas, grupos e frames. Use `--crop page` quando o defeito estiver fora da cena, como controles ou legenda.
 
 Para triagem, `--stride 3` representa menos frames. O índice registra essa amostragem. Não descreva uma inspeção com stride 3 como inspeção visual de todos os frames.
 
 Folhas de contato servem para notar saltos e comparar. Abra os frames originais para julgar leitura, alinhamento e defeitos pequenos. Uma miniatura não comprova que o texto está legível no tamanho de estudo.
 
-## 7. Inspeção visual efetiva
+## 8. Inspeção visual efetiva
+
+Amostragem suficiente para declarar a revisão feita:
+
+- **Storyboard:** todos os passos, em desktop e celular, e os cenários de erro das práticas. Olhe todas as folhas.
+- **Motion:** para cada passo com duração > 0, as folhas de contato com `--stride 3` (≈ 10 quadros/s). Quadros idênticos seguidos aparecem uma vez só, marcados “×n iguais”, então as folhas mostram apenas mudança; olhe todas elas. Abra em tamanho real os quadros vizinhos de cada momento suspeito.
+- Passos de duração zero são revisados pelo storyboard.
+
+Registre em `review.json` o que viu em cada grupo; `sheets.json` guarda o stride usado. Revisão com amostragem menor é parcial e deve ser descrita assim.
 
 Para cada grupo de frames:
 
@@ -131,7 +171,7 @@ fail: rótulo B cruza a seta entre 0,4 e 0,6 s; corrigir posição do callout.
 
 Não preencha todos os grupos com “OK” sem olhar as imagens. O script registra a declaração do revisor; não é capaz de provar que ele olhou.
 
-## 8. Testes funcionais e determinismo
+## 9. Testes funcionais e determinismo
 
 ```bash
 node scripts/audit.mjs outputs/aula.html \
@@ -145,18 +185,21 @@ O auditor confere hashes, imagens capturadas, erros, carregamento offline, probl
 
 Para verificar as ferramentas incluídas, execute `test_player.mjs` com o exemplo de referência e `test_tools.mjs` com o HTML empacotado e seu manifesto. Este último injeta colisão, alteração do HTML e corrupção de imagem para verificar falhas reais, além de testar empacotamento offline.
 
-Acrescente testes específicos da aula: conservação, monotonicidade, datas, resultados de cálculo, decisão de branch, resposta de exercício e estados de falha. Testes genéricos do player não verificam o conteúdo de uma nova cena.
+Escreva testes da aula em `$WORK/test_aula.mjs` (use `scripts/test_player.mjs` como modelo: `launch` e `openLesson` de `lib.mjs`): valores do modelo em instantes conhecidos, conservação ou monotonicidade, feedback de cada alternativa, bloqueio de Continuar nas práticas, Continuar durante a animação, Voltar no primeiro passo, ↺ e o painel de fontes. `test_player.mjs` e `test_tools.mjs` são fixos no exemplo incluído e servem para validar a skill, não a aula.
 
-Teste também: teclado após clicar em controles, foco visível, abrir/fechar detalhes, reiniciar, alternar hipóteses repetidamente e retomar um rascunho. Essas ações costumam revelar estado oculto.
+Teste também: Continuar durante uma animação, Voltar no primeiro passo, ↺, teclado após clicar em controles, foco visível, painel de fontes, alternar hipóteses repetidamente e retomar uma tela já visitada. Essas ações costumam revelar estado oculto.
 
-## 9. Corrigir sem apagar evidência
+## 10. Corrigir sem apagar evidência
 
 Classifique o defeito antes de reparar:
 
 | Defeito | Reparo típico |
 |---|---|
 | Texto colide | Reorganizar espaço, reduzir conteúdo ou separar etapa |
-| Legenda contradiz a cena | Derivar do mesmo modelo e condição temporal |
+| Frase do passo contradiz a cena | Derivar do mesmo modelo e condição temporal |
+| Texto demais na tela | Dividir em passos ou telas; mover contexto para outra tela; fontes para `sources` |
+| Termo usado antes de definido | Inserir tela `explicar` ou definir no próprio passo, com o desenho apontando |
+| Desenho pequeno ou com buracos | Ajustar o viewBox ao conteúdo, aumentar elementos ou usar câmera |
 | Número salta | Reservar largura e revisar arredondamento |
 | Seek depende do passado | Remover incrementos acumulados e restaurar propriedades |
 | Etapa avança duas vezes | Separar navegação, reprodução e preferência de movimento |
@@ -165,7 +208,7 @@ Classifique o defeito antes de reparar:
 
 Depois do reparo, recapture o trecho e os cenários afetados. Se mudar tokens, tipografia, layout ou player global, a abrangência de regressão aumenta. Não reutilize o relatório antigo para o HTML novo.
 
-## 10. Conclusão e limpeza
+## 11. Conclusão e limpeza
 
 Antes de entregar, abra o HTML final offline em um browser real, teste a navegação e compare seu hash com o relatório. Verifique os resultados de aprendizagem e a informação de versão.
 

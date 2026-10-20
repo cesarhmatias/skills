@@ -1,211 +1,169 @@
-/* Functional shell. Replace tokens and scene composition for the subject. */
+/* Guided lesson shell. Replace the tokens per subject; keep the hierarchy:
+   progress → title → scene → one narration line + one primary action. */
 :root {
-  --paper:#f1f5fb;
+  --font:'Inter',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --bg:#f6f5f1;
   --surface:#fff;
-  --ink:#17304c;
-  --muted:#526a83;
-  --accent:#2856cf;
-  --line:#c8d7e8;
-  --good:#11725f;
-  --bad:#a12e49;
-  font-family:system-ui,sans-serif;
+  --ink:#14161b;
+  --muted:#6b6f78;
+  --faint:#a3a6ad;
+  --line:#e6e3dc;
+  --accent:#3b5bdb;
+  --accent-soft:#e9edff;
+  --accent-ink:#2a44b8;
+  --warm:#f59f00;
+  --warm-soft:#fff3d6;
+  --good:#0c8a5f;
+  --good-soft:#e3f6ee;
+  --bad:#d9480f;
+  --bad-soft:#fdebe2;
+  --radius:20px;
+  font-family:var(--font);
   color:var(--ink);
-  background:var(--paper)
+  background:var(--bg);
+  font-feature-settings:'cv11','ss01';
+  -webkit-font-smoothing:antialiased
 }
-* {
-  box-sizing:border-box
+* { box-sizing:border-box }
+html,body { margin:0; height:100% }
+body { background:var(--bg) }
+button,input,select,textarea { font:inherit; color:inherit }
+button { cursor:pointer }
+button:disabled { cursor:default }
+:focus-visible { outline:3px solid var(--accent); outline-offset:3px; border-radius:8px }
+
+.lp { display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr) auto; height:100dvh; max-width:1360px; margin:0 auto; padding:0 clamp(16px,3vw,44px) }
+.lp-top { display:flex; align-items:center; gap:24px; height:64px }
+.lp-course { margin:0; font-size:14px; font-weight:600; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:30%}
+.lp-progress { flex:1; display:flex; gap:4px }
+.lp-progress button { flex:1; background:none; border:0; padding:12px 0 }
+.lp-progress span { display:block; height:5px; border-radius:99px; background:var(--line) }
+.lp-progress .done span { background:color-mix(in srgb,var(--accent) 45%,var(--line)) }
+.lp-progress [aria-current] span { background:var(--accent) }
+.lp-progress button:hover span { background:var(--faint) }
+
+.lp-stage { display:flex; flex-direction:column; min-height:0; padding-top:6px }
+.lp-kicker { margin:0; font-size:13px; font-weight:650; letter-spacing:.12em; text-transform:uppercase; color:var(--accent) }
+.lp-stage h1 { margin:6px 0 0; font-size:clamp(28px,3vw,42px); line-height:1.08; font-weight:720; letter-spacing:-.025em; max-width:30ch; text-wrap:balance }
+.lp-scene { position:relative; flex:1; min-height:0; margin:18px 0 12px; background:var(--surface); border-radius:var(--radius); box-shadow:0 1px 2px rgba(20,22,27,.04),0 12px 40px rgba(20,22,27,.06); overflow:hidden; display:flex }
+.lp-scene > * { flex:1; min-width:0 }
+.lp-inputs { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; margin:0 0 6px }
+.lp-inputs[hidden] { display:none }
+.lp-label { font-size:15px; font-weight:600; color:var(--muted) }
+.lp-value { font:600 18px var(--mono); min-width:4ch; color:var(--ink) }
+.lp-inputs input[type=range] { width:min(320px,60vw); accent-color:var(--accent) }
+.lp-inputs select { padding:10px 12px; border:1.5px solid var(--line); border-radius:12px; background:var(--surface) }
+.lp-choices { display:flex; flex-wrap:wrap; align-items:center; gap:10px }
+.lp-choice { padding:11px 18px; border:1.5px solid var(--line); border-radius:14px; background:var(--surface); font-size:17px; font-weight:550 }
+.lp-choice:hover { border-color:var(--faint) }
+.lp-choice[aria-pressed=true] { border-color:var(--accent); background:var(--accent-soft); color:var(--accent-ink) }
+
+.lp-bar { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; align-items:center; gap:18px; padding:12px 0 18px; border-top:1px solid var(--line) }
+.lp-narration p { margin:0; min-height:2.8em; display:flex; align-items:center; font-size:clamp(17px,1.45vw,21px); line-height:1.4; font-weight:520; text-wrap:pretty }
+.lp-dots { display:flex; gap:6px; margin-top:4px; height:6px }
+.lp-dots i { width:6px; height:6px; border-radius:99px; background:var(--line) }
+.lp-dots .done { background:color-mix(in srgb,var(--accent) 45%,var(--line)) }
+.lp-dots .now { width:20px; background:var(--accent) }
+.lp-go { display:flex; flex-direction:column; align-items:center; gap:4px }
+.lp-primary { min-width:170px; padding:15px 28px; border:0; border-radius:999px; background:var(--ink); color:#fff; font-size:17px; font-weight:650; box-shadow:0 6px 18px rgba(20,22,27,.18) }
+/* No CSS transitions on anything the timeline or the capture touches: they would run outside seek. */
+.lp-primary:hover:not(:disabled) { background:#000; transform:translateY(-1px) }
+.lp-primary:disabled { background:var(--faint); box-shadow:none }
+.lp-keys { font-size:12px; color:var(--faint) }
+.lp-ghost { background:none; border:0; border-radius:10px; padding:10px 14px; font-size:15px; font-weight:550; color:var(--muted) }
+.lp-ghost:hover:not(:disabled) { background:color-mix(in srgb,var(--line) 70%,transparent); color:var(--ink) }
+.lp-ghost:disabled { opacity:.35 }
+.lp-replay { font-size:22px; padding:6px 12px }
+.lp-replay[hidden] { display:block; visibility:hidden }
+
+.lp-drawer { position:fixed; inset:0 0 0 auto; width:min(440px,92vw); background:var(--surface); box-shadow:-20px 0 60px rgba(20,22,27,.15); padding:24px 28px; overflow:auto; z-index:10; font-size:15px; line-height:1.55 }
+.lp-drawer[hidden] { display:none }
+.lp-drawer-head { display:flex; justify-content:space-between; align-items:center }
+.lp-drawer h2 { margin:0; font-size:20px }
+.lp-drawer h3 { margin:22px 0 6px; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted) }
+.lp-drawer ul { margin:0; padding-left:18px }
+.lp-drawer li { margin:8px 0 }
+.lp-drawer a { color:var(--accent-ink) }
+.lp-drawer p { margin:2px 0 0; color:var(--muted) }
+
+/* Scene building blocks. A scene uses one of them; text inside stays short. */
+.sc-split { display:grid; grid-template-columns:minmax(0,5fr) minmax(0,7fr); gap:clamp(20px,3vw,48px); align-items:center; padding:clamp(20px,3vw,44px) }
+.sc-center { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:18px; padding:clamp(20px,3vw,44px) }
+.sc-full { display:flex; padding:clamp(12px,2vw,28px) }
+.sc-full > svg, .sc-visual > svg { width:100%; height:100%; display:block }
+.sc-visual { min-height:0; height:100%; display:flex; align-items:center }
+.sc-say { margin:0; font-size:clamp(24px,2.3vw,34px); line-height:1.22; font-weight:650; letter-spacing:-.015em; text-wrap:balance }
+.sc-sub { margin:14px 0 0; font-size:clamp(16px,1.3vw,19px); line-height:1.5; color:var(--muted); text-wrap:pretty }
+/* Deeper explanation: body style, comfortable measure, same place on every screen that has one. */
+.sc-read { margin:16px 0 0; font-size:clamp(16px,1.25vw,18px); line-height:1.65; color:var(--ink); max-width:62ch; text-wrap:pretty }
+.sc-term { display:inline-block; padding:2px 10px; border-radius:8px; background:var(--accent-soft); color:var(--accent-ink); font-weight:650 }
+.sc-big { font-size:clamp(56px,7vw,112px); line-height:1; font-weight:760; letter-spacing:-.04em; font-variant-numeric:tabular-nums }
+.sc-label { font-size:14px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted) }
+.sc-note { font-size:13px; color:var(--faint) }
+.sc-feedback { margin:18px 0 0; padding:16px 18px; border-radius:14px; font-size:18px; line-height:1.5; background:var(--good-soft); color:#075c3f }
+.sc-feedback.wrong { background:var(--bad-soft); color:#9a330a }
+.lp svg text { font-family:var(--font) }
+.sc-only-narrow { display:none!important }
+
+/* Practice: the question and its answer cards form one group in the middle of the screen. */
+.lp[data-kind=pratica] .lp-stage { justify-content:center }
+.lp[data-kind=pratica] .lp-scene { flex:0 1 auto; min-height:260px }
+.lp[data-kind=pratica] .lp-inputs { justify-content:center; margin:6px 0 24px }
+.lp[data-kind=pratica] .lp-inputs .lp-label { display:none }
+.lp[data-kind=pratica] .lp-choice { padding:16px 26px; font-size:19px }
+
+/* kit.js blocks */
+.sc-copy { max-width:44ch }
+.sc-question { max-width:780px }
+.sc-question .sc-say { font-size:clamp(26px,2.4vw,34px) }
+.sc-cards { flex:1; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:22px; padding:clamp(20px,3vw,44px); align-content:center }
+.sc-card { padding:28px; border-radius:18px; background:var(--bg) }
+.sc-card b { display:block; font-size:44px; margin-bottom:12px }
+.sc-card p { margin:0; font-size:21px; line-height:1.35; font-weight:620 }
+.sc-card span { display:block; margin-top:10px; font-size:16px; color:var(--muted) }
+.mock-app { width:min(clamp(380px,40vw,600px),100%); font-size:clamp(16px,1.3vw,19px); border-radius:28px; background:var(--surface); border:1px solid var(--line); box-shadow:0 24px 60px rgba(20,22,27,.16); overflow:hidden; text-align:left }
+.mock-app-bar { display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--line); font-size:16px }
+.mock-app-bar em { font-style:normal; font-size:12px; font-weight:600; color:var(--muted); padding:2px 8px; border-radius:6px; background:var(--bg) }
+.mock-app-body { padding:20px 22px 24px; display:flex; flex-direction:column; gap:14px }
+.app-row { display:flex; justify-content:space-between; align-items:center; padding:clamp(14px,1.4vw,20px) 18px; border-radius:14px; background:var(--bg); font-size:inherit }
+.app-row b { font:650 1.2em var(--font); font-variant-numeric:tabular-nums }
+.app-row.on { background:var(--accent-soft); color:var(--accent-ink) }
+.app-hero { padding:6px 4px 10px }
+.app-hero span { display:block; color:var(--muted) }
+.app-hero b { display:block; margin-top:6px; font-size:2.4em; font-weight:720; letter-spacing:-.02em; font-variant-numeric:tabular-nums }
+.app-btn { padding:14px; border-radius:14px; background:var(--accent); color:#fff; text-align:center; font-weight:650 }
+.app-toast { padding:12px 14px; border-radius:12px; background:var(--good-soft); color:#075c3f; font-weight:600 }
+
+/* Realistic mock of a tool. Label it as a simulation inside the scene. */
+/* A mock fills the scene: it is the evidence the screen is about, not a thumbnail. */
+.mock { width:100%; max-width:1040px; border-radius:16px; overflow:hidden; background:#16181d; color:#e8e9ec; box-shadow:0 20px 50px rgba(20,22,27,.25); font:clamp(15px,1.35vw,20px)/1.6 var(--mono); text-align:left }
+.mock-bar { display:flex; align-items:center; gap:8px; padding:12px 16px; background:#202329; font:600 13px var(--font); color:#9aa0aa }
+.mock-bar i { width:12px; height:12px; border-radius:99px; background:#3a3e46 }
+.mock-bar span { margin-left:10px }
+.mock-bar em { margin-left:auto; font-style:normal; font-weight:500; padding:2px 8px; border-radius:6px; background:#2c3038 }
+.mock pre { margin:0; padding:22px 26px; min-height:clamp(220px,38vh,420px); white-space:pre-wrap; font:inherit }
+.mock .p { color:#7c8494 }
+.mock .k { color:#8fb4ff }
+.mock .s { color:#ffd479 }
+.mock .ok { color:#5ee0a5 }
+.mock .warn { color:#ff9f6e }
+.mock .hl { background:rgba(255,212,121,.16); border-radius:4px; box-shadow:0 0 0 3px rgba(255,212,121,.16) }
+.mock .cursor { display:inline-block; width:.6em; height:1.1em; vertical-align:-.15em; background:#e8e9ec }
+
+@media (max-width:760px), (max-height:640px) {
+  .lp { height:auto; min-height:100dvh; grid-template-rows:auto auto auto }
+  .lp-course { display:none }
+  .lp-scene { min-height:340px }
+  .lp-bar { grid-template-columns:auto 1fr auto }
+  .lp-narration { grid-column:1/-1; order:-1 }
+  .lp-keys { display:none }
+  .lp-primary { min-width:0 }
+  .sc-split { grid-template-columns:1fr }
+  .sc-only-wide { display:none!important }
+  .sc-only-narrow { display:block!important }
+  .sc-wide { overflow-x:auto }
+  .sc-wide > svg { width:760px!important; height:auto!important; flex:none }
+  .mock { font-size:13px }
 }
-body {
-  margin:0
-}
-button,input,select,textarea {
-  font:inherit
-}
-button {
-  cursor:pointer;
-  background:var(--surface);
-  color:var(--ink);
-  border:1px solid var(--line);
-  border-radius:.5rem;
-  padding:.6rem .8rem
-}
-button:hover {
-  background:#e3edff
-}
-button:disabled {
-  opacity:.4;
-  cursor:default
-}
-button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible {
-  outline:3px solid var(--accent);
-  outline-offset:3px
-}
-.lesson-shell {
-  max-width:1300px;
-  margin:auto
-}
-.lesson-shell header {
-  padding:1.5rem 2rem;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:1rem;
-  border-bottom:1px solid var(--line)
-}
-.lesson-brand {
-  font-size:1rem;
-  letter-spacing:.04em;
-  font-weight:700;
-  margin:0
-}
-.lesson-shell nav {
-  display:flex;
-  flex-wrap:wrap;
-  gap:.4rem
-}
-.lesson-shell nav [aria-current=page] {
-  background:var(--accent);
-  color:#fff
-}
-.lesson-shell main {
-  padding:2rem;
-  max-width:1100px;
-  margin:auto
-}
-.lesson-chapter {
-  text-transform:uppercase;
-  font-size:.8rem;
-  letter-spacing:.12em;
-  color:var(--muted)
-}
-.lesson-shell h1 {
-  font-size:clamp(2rem,4vw,3.5rem);
-  line-height:1.1;
-  margin:.7rem 0 1rem
-}
-.lesson-description {
-  font-size:1.15rem;
-  line-height:1.7;
-  max-width:72ch
-}
-.lesson-shell [data-player=scene] {
-  margin-top:1.5rem;
-  background:var(--surface);
-  padding:1.5rem;
-  border:1px solid var(--line);
-  border-radius:.8rem;
-  min-height:280px;
-  overflow:hidden
-}
-.lesson-shell svg {
-  display:block;
-  width:100%;
-  height:auto
-}
-.lesson-shell svg text {
-  font-family:system-ui,sans-serif
-}
-.lesson-inputs {
-  display:flex;
-  align-items:center;
-  flex-wrap:wrap;
-  gap:.7rem;
-  margin:1rem 0
-}
-.lesson-inputs label {
-  font-weight:600
-}
-.lesson-inputs select,.lesson-inputs input[type=number],.lesson-inputs textarea {
-  border:1px solid var(--line);
-  padding:.6rem;
-  background:white;
-  color:var(--ink);
-  border-radius:.4rem
-}
-.lesson-inputs textarea {
-  width:100%;
-  min-height:6rem;
-  line-height:1.6
-}
-.lesson-inputs input[type=range] {
-  accent-color:var(--accent);
-  max-width:100%
-}
-.lesson-caption {
-  line-height:1.7;
-  min-height:3.5rem;
-  padding:.7rem 1rem;
-  border-left:3px solid var(--accent);
-  background:#e6eefb
-}
-.lesson-scene-controls {
-  display:flex;
-  align-items:center;
-  flex-wrap:wrap;
-  gap:.5rem
-}
-.lesson-scene-controls span {
-  margin-left:auto;
-  color:var(--muted);
-  font-variant-numeric:tabular-nums
-}
-.lesson-shell footer {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:1rem;
-  margin-top:2rem;
-  border-top:1px solid var(--line);
-  padding-top:1.5rem
-}
-.lesson-value {
-  font-variant-numeric:tabular-nums;
-  font-family:ui-monospace,monospace
-}
-.lesson-feedback {
-  padding:1rem;
-  background:#e6f4ee;
-  color:var(--good);
-  line-height:1.7
-}
-.lesson-feedback.wrong {
-  background:#fae9ee;
-  color:var(--bad)
-}
-.lesson-note {
-  font-size:.9rem;
-  line-height:1.7;
-  color:var(--muted)
-}
-@media(max-width:650px) {
-  .lesson-shell header {
-    align-items:flex-start;
-    padding:1rem;
-    flex-direction:column
-  }
-  .lesson-shell main {
-    padding:1rem
-  }
-  .lesson-shell [data-player=scene] {
-    padding:1rem;
-    min-height:220px
-  }
-  .lesson-description {
-    font-size:1rem
-  }
-  .lesson-scene-controls button {
-    font-size:.85rem
-  }
-  .lesson-caption {
-    min-height:5rem
-  }
-  .lesson-inputs {
-    align-items:flex-start;
-    flex-direction:column
-  }
-}
-@media(prefers-reduced-motion:reduce) {
-  * {
-    scroll-behavior:auto!important
-  }
-}
+@media (prefers-reduced-motion:reduce) { * { transition:none!important; scroll-behavior:auto!important } }

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, writeFile, cp, rm } from 'node:fs/promises';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { args, launch, openLesson } from './lib.mjs';
 const options = args(), scripts = dirname(fileURLToPath(import.meta.url));
@@ -15,7 +16,7 @@ function run(script, parameters) {
 try {
   if (!options._[0] || !options.capture) throw new Error('Usage: test_tools.mjs PACKED_LESSON --capture CAPTURE/manifest.json [--channel chrome]');
   const lesson = resolve(options._[0]), capture = resolve(String(options.capture));
-  const base = resolve(String(options.out || 'work')); await mkdir(base, { recursive: true });
+  const base = resolve(String(options.out || tmpdir())); await mkdir(base, { recursive: true });
   scratch = await mkdtemp(join(base, 'lesson-tools-'));
   const channel = options.channel ? ['--channel', String(options.channel)] : [];
   let checks = 0;
@@ -47,6 +48,38 @@ try {
   assert.notEqual(failedLayout.status, 0);
   const collisionManifest = JSON.parse(await readFile(join(captureOut, 'manifest.json'), 'utf8'));
   assert(collisionManifest.frames.some(f => f.layout.problems.some(p => p.code === 'TEXT_OVERLAP'))); checks++;
+  // Clipped SVG text, text shrunk below reading size and an unreachable step control must fail;
+  // a region marked data-qa-scroll must not be reported as page overflow.
+  const fixtures = '<svg width="100" height="40" viewBox="0 0 100 40"><text data-qa-text="clipped" x="60" y="20" font-size="16">texto cortado</text></svg>'
+    + '<svg width="100" viewBox="0 0 1000 400"><text data-qa-text="tiny" x="10" y="100" font-size="20">minúsculo</text></svg>'
+    + '<div data-qa-scroll="diagrama largo" style="overflow-x:auto;width:100px"><span data-qa-text="wide" style="display:inline-block;width:2000px">largo</span></div>'
+    + '<div style="height:1200px"></div>';
+  const qualityPath = join(scratch, 'quality.html'); await writeFile(qualityPath, original.replace('<body>', `<body>${fixtures}`));
+  const qualityOut = join(scratch, 'quality-qa');
+  assert.notEqual(run('capture.mjs', [qualityPath, '--out', qualityOut, '--slides', 'transferencia', '--steps', 'inicial', '--scenarios', 'default', ...channel]).status, 0);
+  const found = JSON.parse(await readFile(join(qualityOut, 'manifest.json'), 'utf8')).frames[0].layout.problems;
+  assert(found.some(p => p.code === 'TEXT_CLIPPED' && p.element === 'clipped'), 'SVG viewport clipping must be reported'); checks++;
+  assert(found.some(p => p.code === 'TEXT_TOO_SMALL' && p.element === 'tiny'), 'Scaled-down SVG text must be reported'); checks++;
+  assert(!found.some(p => p.element === 'wide'), 'A data-qa-scroll region is not page overflow'); checks++;
+  assert(found.some(p => p.code === 'CONTROLS_BELOW_FOLD'), 'A step control below the fold must be reported'); checks++;
+  // The text budget is enforced: a title longer than nine words fails the capture.
+  const wordyPath = join(scratch, 'wordy.html');
+  await writeFile(wordyPath, original.replace("title: 'O que sai de A entra em B'", "title: 'Um título muito longo que tenta explicar tudo de uma vez só aqui'"));
+  const wordyOut = join(scratch, 'wordy-qa');
+  assert.notEqual(run('capture.mjs', [wordyPath, '--out', wordyOut, '--slides', 'transferencia', '--steps', 'inicial', '--scenarios', 'default', ...channel]).status, 0);
+  assert(JSON.parse(await readFile(join(wordyOut, 'manifest.json'), 'utf8')).frames[0].layout.problems.some(p => p.code === 'TITLE_TOO_LONG'), 'Long titles must be reported'); checks++;
+  // Visual calm is enforced: five unrelated text sizes in one scene fail the capture.
+  const noisyPath = join(scratch, 'noisy.html');
+  const noise = [12, 20, 34, 56, 90].map((size, i) => `<text x="${i * 120}" y="30" font-size="${size}">ruído</text>`).join('');
+  await writeFile(noisyPath, original.replace('const body = tank(20,', `const body = '${noise}' + tank(20,`));
+  const noisyOut = join(scratch, 'noisy-qa');
+  assert.notEqual(run('capture.mjs', [noisyPath, '--out', noisyOut, '--slides', 'transferencia', '--steps', 'comparar', '--scenarios', 'default', ...channel]).status, 0);
+  assert(JSON.parse(await readFile(join(noisyOut, 'manifest.json'), 'utf8')).frames.some(f => f.layout.problems.some(p => p.code === 'TYPE_SIZES')), 'Scattered type sizes must be reported'); checks++;
+  // The handout is a real PDF with one page per screen plus cover, answer key and sources.
+  const pdfPath = join(scratch, 'handout.pdf');
+  const pdf = run('pdf.mjs', [lesson, '--out', pdfPath, ...channel]);
+  assert.equal(pdf.status, 0, pdf.stderr);
+  assert((await readFile(pdfPath)).subarray(0, 5).toString() === '%PDF-', 'Handout must be a PDF'); checks++;
   // A modified HTML cannot inherit a valid report from another artifact.
   const changed = join(scratch, 'changed.html'); await writeFile(changed, original + '\n<!-- changed -->');
   const changedReport = join(scratch, 'changed-audit.json');
@@ -61,6 +94,6 @@ try {
   const corrupt = run('audit.mjs', [lesson, '--capture', join(copied, 'manifest.json'), '--out', imageReport, ...channel]);
   assert.notEqual(corrupt.status, 0);
   assert(JSON.parse(await readFile(imageReport, 'utf8')).problems.some(p => p.name === 'frame:0')); checks++;
-  console.log(JSON.stringify({ ok: true, checks, verified: ['offline packaging', 'remote asset rejection', 'layout failure', 'stale HTML rejection', 'modified frame rejection'] }));
+  console.log(JSON.stringify({ ok: true, checks, verified: ['offline packaging', 'remote asset rejection', 'layout failure', 'svg clipping', 'minimum text size', 'scroll region exemption', 'controls below fold', 'text budget', 'type scale', 'pdf handout', 'stale HTML rejection', 'modified frame rejection'] }));
 } catch (error) { console.error(error.stack || error.message); process.exitCode = 1; }
 finally { await browser?.close(); if (scratch) await rm(scratch, { recursive: true, force: true }); }

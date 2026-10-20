@@ -32,11 +32,33 @@
     x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35) >>> 0;
     return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
   }
+  const easeOutQuint = x => 1 - (1 - clamp(x)) ** 5;
+  const easeInOutQuart = x => (x = clamp(x)) < .5 ? 8 * x ** 4 : 1 - (-2 * x + 2) ** 4 / 2;
+  // Damped spring from 0 to 1, evaluated analytically so any seek gives the same frame.
+  // Overshoot stays small (~4%): use for emphasis only, never for quantities with limits.
+  function spring(x, { damping = .72, frequency = 2.2 } = {}) {
+    x = clamp(x); if (x >= 1) return 1;
+    const w = 2 * Math.PI * frequency, d = Math.sqrt(1 - damping ** 2);
+    return 1 - Math.exp(-damping * w * x) * (Math.cos(w * d * x) + damping / d * Math.sin(w * d * x));
+  }
+  // Text and objects enter by fading and rising a few pixels; nothing slides across the screen.
+  function enter(t, start, length = .55, rise = 14) {
+    const p = easeOutCubic(segment(t, start, start + length));
+    return { opacity: p, y: (1 - p) * rise, p, style: `opacity:${p.toFixed(3)};transform:translateY(${((1 - p) * rise).toFixed(2)}px)` };
+  }
+  // i-th item of a group: start + i * gap.
+  const stagger = (t, i, start, gap = .08, length = .5, easing = easeOutCubic) => segment(t, start + i * gap, start + i * gap + length, easing);
+  // 0 → 1 → 0 bump, e.g. a highlight that pulses once when something arrives.
+  const pulse = (t, at, length = .6) => Math.sin(Math.PI * segment(t, at, at + length));
+  // Interpolated SVG viewBox: a camera that frames the part being explained.
+  function camera(a, b, p) { return [a.x, a.y, a.w, a.h].map((v, i) => lerp(v, [b.x, b.y, b.w, b.h][i], p).toFixed(2)).join(' '); }
+  // Characters typed at a constant rate; the frame depends only on t.
+  const typed = (text, t, start, cps = 28) => text.slice(0, Math.max(0, Math.floor((t - start) * cps)));
   function escape(value) {
     return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   }
   function number(value, { locale = 'pt-BR', digits = 1 } = {}) {
     return new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(value);
   }
-  global.LessonMotion = Object.freeze({ clamp, linear, easeInOutCubic, easeOutCubic, lerp, segment, cubic, contain, seeded, escape, number });
+  global.LessonMotion = Object.freeze({ clamp, linear, easeInOutCubic, easeOutCubic, easeOutQuint, easeInOutQuart, spring, enter, stagger, pulse, camera, typed, lerp, segment, cubic, contain, seeded, escape, number });
 })(window);

@@ -12,7 +12,10 @@ export function dependency(name) {
 export function args(argv = process.argv.slice(2)) {
   const result = { _: [] };
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i].startsWith('--')) {
+    if (argv[i].startsWith('--') && argv[i].includes('=')) {
+      const [key, ...rest] = argv[i].slice(2).split('=');
+      result[key] = rest.join('=');
+    } else if (argv[i].startsWith('--')) {
       const key = argv[i].slice(2);
       result[key] = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[++i] : true;
     } else result._.push(argv[i]);
