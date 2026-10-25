@@ -17,7 +17,7 @@ The four query params that cover 95% of scraping work:
 
 | Param | Purpose |
 |---|---|
-| `where` | SQL-like filter, e.g. `where=1=1` (all), `where=STATUS='Approved'`, `where=DateField>=date'2024-01-01'` |
+| `where` | SQL-like filter, e.g. `where=1=1` (all), `where=CATEGORY='Example'`, `where=DateField>=date'2024-01-01'` (field names and values are illustrative; inspect layer metadata) |
 | `outFields` | Comma-separated list of fields to return, or `*` for everything |
 | `resultOffset` / `resultRecordCount` | Pagination |
 | `f` | Output format: `json` (Esri JSON), `geojson` (RFC 7946), `pjson` (pretty), `html` (browser) |

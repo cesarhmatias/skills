@@ -51,7 +51,7 @@ Things you took for granted but didn't verify. The big recurring ones:
 List the load-bearing assumptions. If one fails in production, what breaks?
 
 Example:
-> **Assumption:** parser tested on 5 records in the "Building" category. Other categories (Demolition, Subdivision, Heritage) assumed consistent — not verified. Risk: a different category may emit different field names.
+> **Assumption:** parser tested on 5 records in the "Books" category. Other categories (Electronics, Clothing, Furniture) assumed consistent — not verified. Risk: a different category may emit different field names.
 
 ### 4. Staleness risk
 
@@ -77,7 +77,7 @@ Format as a punch list:
 
 Example:
 > **Recommendations:**
-> - To close "schema consistency" assumption: re-run parser against a sample of 10 records from Demolition + Heritage categories. ~5 minutes.
+> - To close "schema consistency" assumption: re-run parser against a sample of 10 records from Electronics + Furniture categories. ~5 minutes.
 > - To close "pagination beyond page 5" gap: run the existing scraper to completion (all 47 pages) once and compare row count to reported total. ~30 minutes.
 > - To handle frontend-deploy invalidation of doc_id: add a startup hook that extracts the current doc_id from the live JS bundle. ~1 hour. See `../site-patterns/graphql.md`.
 
@@ -101,9 +101,9 @@ Self-critique is a **section in the final delivery message** — not a separate 
 
 **Experienced** — Tight technical version with full vocabulary:
 > ## Self-critique
-> - **Gaps:** decision_date missing in 12% (Withdrawn category)
+> - **Gaps:** created_at missing in 12% (Discontinued category)
 > - **Unvalidated:** pagination beyond page 5; `len(results) == total` not asserted
-> - **Assumptions:** parser tested on Building cat only; schema drift untested across Demolition/Subdivision/Heritage
+> - **Assumptions:** parser tested on Books cat only; schema drift untested across Electronics/Clothing/Furniture
 > - **Staleness:** geo-locked prices (US IP); doc_id pinned for current frontend build
 > - **Recommendations:** sample-test other categories (~5min); add doc_id refresh hook (~1h)
 

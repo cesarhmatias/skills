@@ -15,7 +15,7 @@ The layers form a one-way pipeline: **bronze → silver → gold**. Each downstr
 ## Why bronze-first matters
 
 1. **Source-of-truth durability.** The site you're scraping today may change tomorrow — fields renamed, layout reflowed, vendor swapped. Bronze preserves the original payload so you can recompute new silver schemas later without re-scraping.
-2. **Change history.** Hashing each bronze row by content lets you detect when a record changed (decision date updated, status flipped) — impossible if you only kept the cleaned version.
+2. **Change history.** Hashing each bronze row by content lets you detect when a record changed (price updated, availability changed) — impossible if you only kept the cleaned version.
 3. **Honest failures.** A parser bug in silver doesn't destroy data; you fix the parser and re-run silver from bronze. Without bronze, parser bugs are silent data loss.
 4. **Cheap incrementality.** Bronze upserts by natural key + content hash. Silver gets rebuilt from the deltas, not the full set.
 

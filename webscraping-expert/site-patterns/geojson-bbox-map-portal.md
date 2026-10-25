@@ -1,102 +1,108 @@
 # GeoJSON map portal with bbox query
 
-A pattern that recurs whenever someone built a "search on a map" UI without using ArcGIS or a standard GIS stack — typically council/municipal portals, real-estate search, asset locators, and bespoke spatial dashboards. The frontend renders a Leaflet/MapboxGL/OpenLayers map and POSTs the current viewport rectangle plus filter values to a custom endpoint that returns GeoJSON.
+A "search on a map" UI can expose a custom spatial API — for example, a catalog of locations displayed on a Leaflet, Mapbox GL, or OpenLayers map. The frontend sends the visible map bounds and selected filters, then receives GeoJSON features.
 
-If your target speaks ArcGIS REST, see `arcgis-feature-server.md` instead — that's a documented protocol with consistent semantics. This page is for the *unbranded* equivalent: a bespoke spatial API with bbox-style filtering and no official spec.
+If your target speaks ArcGIS REST, see `arcgis-feature-server.md` instead. This page covers custom APIs whose request schema must be discovered from observed traffic.
 
 ## When you see this
 
-- POST to an endpoint that takes a JSON body with `BBox` (or `bbox`, `bounds`, `extent`) — usually `{west, south, east, north}` or `[xmin, ymin, xmax, ymax]`
-- Body also carries `ViewPort`, `PixelWidth`, `PixelHeight`, `Zoom`, or a similar viewport descriptor (server uses it to cluster or LOD-filter results)
-- Response is GeoJSON-shaped: `{"features": [{"type": "Feature", "properties": {...}, "geometry": {...}}], "totalFeatures": N}`
-- Frontend is Leaflet/MapboxGL/OpenLayers — the map UI has zoom controls, layer toggles, and a "draw a search box" tool
-- No standard ArcGIS path (`/arcgis/rest/services/...`) anywhere in the HAR
+- Map interactions trigger requests containing a geographic bounding box.
+- Responses contain GeoJSON features with `properties` and `geometry`.
+- Panning, zooming, or changing a filter changes the returned features.
+- No standard ArcGIS path (`/arcgis/rest/services/...`) appears in the requests.
 
 ## How it works
 
-The map UI shows features within the current viewport. Every time the user pans, zooms, or applies a filter, the client sends the new bbox + filters and the server responds with the features inside that rectangle. There's no concept of "all features at once" from the server's perspective — it always answers a spatial slice.
+The server returns the features inside the requested rectangle. A larger bounding box may cover the whole dataset, but pagination or smaller spatial slices can still be required.
 
-For scraping you exploit that by **sending a bbox large enough to cover the entire dataset** in a single request, plus paginating with offset (when supported) or splitting the bbox into a quadtree when the server caps results.
+**The endpoint, request keys, and `total` field below are illustrative.** Map them to the observed API before using the code. The first example assumes offset pagination and an accurate total for the matching bounding box.
 
 ```python
 import httpx
 
-WORLD_BBOX = {"BBox": {"west": -180, "south": -90, "east": 180, "north": 90}}
+ENDPOINT = "https://locations.example.com/api/search"
+WORLD_BBOX = {"west": -180, "south": -90, "east": 180, "north": 90}
 
-def fetch_all(client: httpx.Client, extra_filters: dict | None = None):
-    body = {
-        **WORLD_BBOX,
-        "ViewPort": {"PixelWidth": 1920, "PixelHeight": 1080},  # often required
-        "StartIndex": 0,
-        "PageSize": 1000,
-        **(extra_filters or {}),
-    }
-    r = client.post(ENDPOINT, json=body, timeout=120)
-    payload = r.json()
-    yield from payload["features"]
+def fetch_all(client: httpx.Client, page_size: int = 1000):
+    offset = 0
+    while True:
+        response = client.post(
+            ENDPOINT,
+            json={"bbox": WORLD_BBOX, "offset": offset, "limit": page_size},
+            timeout=120,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        features = payload["features"]
+        if not features and offset < payload["total"]:
+            raise RuntimeError("Pagination stopped before the reported total")
+        yield from features
+        offset += len(features)
+        if offset >= payload["total"]:
+            return
 ```
 
-Three things to watch for that often break the "one giant bbox" approach:
+Check two behaviors before relying on a single wide bounding box:
 
-1. **The server caps results per request** (e.g. `totalFeatures: 50000` but `len(features) == 5000`). Check `len(features)` vs the implied total; if capped, switch to bbox quadtree.
-2. **The server returns clusters/LOD instead of individual features at wide zoom.** You get `{"properties": {"count": 142, ...}}` instead of `{"properties": {"id": "...", "address": "...", ...}}`. Workaround: send a higher Zoom value or split into smaller bboxes until cluster collapse threshold is passed.
-3. **Date filters use epoch milliseconds** — `StartDateUnixEpochNumber: 1704067200000` (Jan 1 2024 UTC). Multiply unix seconds by 1000.
+1. **Result caps.** Compare the reported total with the features actually returned. If the API ignores pagination, subdivide the bounds instead.
+2. **Clustering.** At wide zoom levels, some APIs return aggregates instead of individual locations. Use smaller bounds and confirm that the response contains individual records.
 
 ## Bbox quadtree fallback
 
-When the server caps results and you need everything, recursively subdivide the bbox:
+When pagination is unavailable, recursively subdivide a bounding box until each response contains all matching features. This illustrative example assumes an accurate `total` for each box; without that count, establish a separate way to detect truncation before treating a slice as complete.
 
 ```python
-def quadtree_fetch(client, bbox: dict, cap: int = 5000):
-    body = {**bbox, "StartIndex": 0, "PageSize": cap + 1}
-    payload = client.post(ENDPOINT, json=body, timeout=120).json()
-    feats = payload["features"]
-    if len(feats) <= cap:
-        yield from feats
+def quadtree_fetch(client, bbox: dict, cap: int = 5000, max_depth: int = 16):
+    response = client.post(
+        ENDPOINT,
+        json={"bbox": bbox, "offset": 0, "limit": cap},
+        timeout=120,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    features = payload["features"]
+    if payload["total"] <= len(features):
+        yield from features
         return
-    # Too many in this cell — split into 4 quadrants and recurse
-    midx = (bbox["BBox"]["west"] + bbox["BBox"]["east"]) / 2
-    midy = (bbox["BBox"]["south"] + bbox["BBox"]["north"]) / 2
+    if max_depth <= 0:
+        raise RuntimeError("Spatial slices remain truncated; another extraction path is needed")
+
+    midx = (bbox["west"] + bbox["east"]) / 2
+    midy = (bbox["south"] + bbox["north"]) / 2
     for west, south, east, north in [
-        (bbox["BBox"]["west"], bbox["BBox"]["south"], midx, midy),
-        (midx, bbox["BBox"]["south"], bbox["BBox"]["east"], midy),
-        (bbox["BBox"]["west"], midy, midx, bbox["BBox"]["north"]),
-        (midx, midy, bbox["BBox"]["east"], bbox["BBox"]["north"]),
+        (bbox["west"], bbox["south"], midx, midy),
+        (midx, bbox["south"], bbox["east"], midy),
+        (bbox["west"], midy, midx, bbox["north"]),
+        (midx, midy, bbox["east"], bbox["north"]),
     ]:
-        sub = {"BBox": {"west": west, "south": south, "east": east, "north": north}}
-        yield from quadtree_fetch(client, sub, cap)
+        sub = {"west": west, "south": south, "east": east, "north": north}
+        yield from quadtree_fetch(client, sub, cap, max_depth - 1)
 ```
 
-Deduplicate features by stable ID at the end — features near a split boundary may be returned twice.
+Deduplicate features by stable ID at the end — features on shared boundaries may be returned twice. If many records share a location, spatial splitting alone may never avoid the cap; use another filter or a bulk endpoint.
 
-## Discovering the bbox params
+## Discovering the request schema
 
-The body schema isn't standardized — every bespoke portal invents its own naming. Capture one real request from a HAR and inspect:
+Capture map requests in a HAR and compare the bodies before and after panning, zooming, and changing filters. Identify which values describe bounds, pagination, and filters. Preserve the names and formats observed on the current target instead of borrowing a schema from another site.
 
 ```bash
-# Look for any key that holds 4 floats or 2 nested {lat,lng} pairs
+# Inspect a few POST bodies from a local capture.
 python3 -c "import json,sys; r=json.load(open(sys.argv[1])); \
   print(json.dumps([e['request']['postData'] for e in r['log']['entries'] \
                     if e['request']['method']=='POST' and 'postData' in e['request']][:3], indent=2))" capture.har
 ```
 
-Common naming variants:
-- `BBox`, `bbox`, `bounds`, `extent`, `mapBounds`, `viewBounds`
-- `{west, south, east, north}` / `{xmin, ymin, xmax, ymax}` / `{minLng, minLat, maxLng, maxLat}` / `[w, s, e, n]`
-- ViewPort meta: `PixelWidth/Height`, `Zoom`, `screenWidth/Height`, `mapZoom`
-
 ## Gotchas
 
-- **Coordinate order trap:** GeoJSON's spec is `[longitude, latitude]`, but many bespoke APIs use `[latitude, longitude]` because that's how humans say it. Compare against a known reference point before trusting the data.
-- **Spatial reference / projection** — most use WGS84 (lat/lon, EPSG:4326), but locally-deployed gov portals may use a country-specific projection (UTM zones, OSGB36, GDA2020). Coordinates look "wrong" until reprojected. Look for `spatialReference`, `srs`, `crs`, `epsg` keys in the response.
-- **Server clustering kicks in at zoomed-out views.** A request with a continent-sized bbox often returns cluster aggregates, not individual features. Quadtree-down until you see `geometry.type: "Point"` (or whatever your detail shape is).
-- **Date params in epoch milliseconds, not seconds and not ISO.** Off-by-1000 errors are silent here — the server filters on "anything since timestamp 1704067200" and you get the last 50 years of records.
-- **Pagination conventions are inconsistent.** Look for `StartIndex`/`PageSize`, `offset`/`limit`, `page`/`per_page`, or "no pagination" (single-shot up to a cap). When in doubt, request a tiny page and inspect what changes between two consecutive calls.
-- **CSRF / anti-bot on map APIs is light** (the API was designed for the public map UI, not for protected data), but rate limits often kick in around 5–10 requests/sec. Throttle to 2/sec by default.
-- **Authentication is rare but exists.** Some portals require an opaque `mapToken` from the initial page load; grep the page HTML for `mapToken=`, `apiKey=`, or `bearer` and echo it in subsequent calls.
+- **Coordinate order:** GeoJSON uses `[longitude, latitude]`; confirm the request's coordinate order against a known point.
+- **Projection:** Check the coordinate reference system before constructing bounds. Transform coordinates when the API uses a projected system.
+- **Truncation:** A successful response does not establish completeness. Validate counts and pagination, and inspect whether results are clustered.
+- **Filter formats:** Derive date and numeric formats from observed requests; do not assume units or serialization.
+- **Pagination:** Verify that changing the offset actually changes the returned records before relying on it.
+- **Authentication and throttling:** Carry the required session state from the observed request and respect the target's rate limits.
 
 ## Related
 
-- `arcgis-feature-server.md` — when the target IS standard Esri ArcGIS (more common than you'd think)
-- `../discovery/har-driven-workflow.md` — how to recover the bbox endpoint and body schema from a real session
-- `spa-frameworks.md` — most map portals are SPAs; the hydration / API discovery flow applies
+- `arcgis-feature-server.md` — documented Esri ArcGIS APIs
+- `../discovery/har-driven-workflow.md` — recover an endpoint and its request schema from a session
+- `spa-frameworks.md` — API discovery for map interfaces rendered by an SPA

@@ -87,7 +87,7 @@ The whole reason to keep the session live: change a filter and re-read. `tableau
 ```python
 ws = workbook.getWorksheet("Sheet 1")
 filters = ws.getFilters()                          # discover filter columns + values
-for value in filters[0]["values"]:                 # e.g. each region / LGA / year
+for value in filters[0]["values"]:                 # e.g. each store / category / year
     updated = ws.setFilter(filters[0]["column"], value)
     df = updated.getWorksheet("Sheet 1").data
     # ... collect df per filter value

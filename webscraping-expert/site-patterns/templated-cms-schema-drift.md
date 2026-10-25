@@ -6,40 +6,25 @@ A pattern that bites everyone the first time: a vendor sells a CMS / portal prod
 
 - Multiple sites use what is obviously the same template (same layout, same UI controls, same JS bundles)
 - Vendor branding present (footer "Powered by X", JS namespace, URL patterns)
-- You're tempted to write a single hardcoded schema mapping ("the date column is always called 'Decision Date'")
+- You're tempted to write a single hardcoded schema mapping ("the date column is always called 'Created At'")
 
 Common offenders:
 - WordPress installs with the same plugin (custom field names vary)
 - Salesforce orgs sharing a managed package (label translations vary)
 - ServiceNow instances across enterprises
-- Municipal / government portal products deployed across many councils
+- Product catalogs deployed across many stores
 - Banking platforms (Temenos, Finastra) deployed across many banks
 
 ## How it goes wrong
 
-You inspect deployment A, observe a field labeled `"Decision Date"`, hardcode the lookup, and ship. Six months later you onboard deployment B — same template, but the local admin renamed the field to `"Decision date"` (lowercase `d`), or to `"Determination Date"`, or just dropped it.
+In an illustrative catalog example, deployment A labels a field `"Created At"`. Deployment B uses `"Created at"` (lowercase `a`), `"Creation Date"`, or omits it. Hardcoding one label makes the mapping brittle.
 
 Your code:
 ```python
-decision_date = payload["Decision Date"]  # KeyError on deployment B
+created_at = payload["Created At"]  # KeyError on deployment B
 ```
 
 …silently produces null values for an unknown percentage of records, and you discover it weeks later when someone asks why a dashboard is wrong.
-
-## Real-world drift examples
-
-For a single municipal portal product, observed across many deployments:
-
-| Deployment | "Decision Date" key |
-|---|---|
-| A | `Decision Date` |
-| B | `Decision date` (lowercase `d`) |
-| C | `Responsible Authority Decision Date` |
-| D | `Date` (only — needs context to disambiguate) |
-| E | `Determination Date` |
-| F | absent — site doesn't expose this field at all |
-
-All six sites run the **exact same vendor template**.
 
 ## Mitigation — never assume, always validate
 
@@ -50,7 +35,7 @@ All six sites run the **exact same vendor template**.
 SELECT k, COUNT(*) FILTER (WHERE coalesce(payload->>k, '') <> '') AS non_empty
 FROM raw_records, jsonb_object_keys(payload) k
 WHERE source = :deployment_name
-  AND lower(k) ~ '(decision|determination|outcome|date)'
+  AND lower(k) ~ '(created|creation|date)'
 GROUP BY k ORDER BY non_empty DESC;
 ```
 
@@ -61,28 +46,28 @@ This single query, run against ~50 records, tells you which key actually holds t
 ```python
 # config.py — one entry per deployment
 FIELD_MAPPING_PER_DEPLOYMENT: dict[str, dict[str, list[str]]] = {
-    "deployment_a": {"decision_date": ["Decision Date"]},
-    "deployment_b": {"decision_date": ["Decision date"]},
-    "deployment_c": {"decision_date": ["Responsible Authority Decision Date"]},
-    "deployment_d": {"decision_date": ["Date"]},  # contextually disambiguated upstream
+    "deployment_a": {"created_at": ["Created At"]},
+    "deployment_b": {"created_at": ["Created at"]},
+    "deployment_c": {"created_at": ["Creation Date"]},
+    "deployment_d": {"created_at": ["Date"]},  # contextually disambiguated upstream
 }
 ```
 
 Then the crawler is generic and the config is the only place that changes per deployment.
 
-**Rule 3:** Normalize in the parser, not in the consumer. If deployment D uses `Date` but the canonical name is `Decision Date`, rename at extraction time:
+**Rule 3:** Normalize in the parser, not in the consumer. If deployment D uses `Date` but the canonical name is `Created At`, rename at extraction time:
 
 ```python
-def _normalize_decision_date(payload: dict, deployment_key: str) -> dict:
-    raw_keys = FIELD_MAPPING_PER_DEPLOYMENT[deployment_key]["decision_date"]
+def _normalize_created_at(payload: dict, deployment_key: str) -> dict:
+    raw_keys = FIELD_MAPPING_PER_DEPLOYMENT[deployment_key]["created_at"]
     for key in raw_keys:
         if payload.get(key):
-            payload["Decision Date"] = payload[key]  # canonical name
+            payload["Created At"] = payload[key]  # canonical name
             break
     return payload
 ```
 
-Downstream code only knows about `Decision Date`. Adding deployment G with `Outcome Date` is a one-line config edit.
+Downstream code only knows about `Created At`. Adding a deployment with `Creation Timestamp` is a one-line config edit.
 
 ## When the field is genuinely absent
 
@@ -91,7 +76,7 @@ Sometimes a deployment legitimately doesn't expose the field. Make that explicit
 ```python
 FIELD_MAPPING_PER_DEPLOYMENT = {
     ...
-    "deployment_f": {"decision_date": None},  # this deployment doesn't have it
+    "deployment_e": {"created_at": None},  # this deployment doesn't have it
 }
 ```
 

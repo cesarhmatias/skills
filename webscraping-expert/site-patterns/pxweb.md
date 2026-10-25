@@ -4,7 +4,7 @@ PX-Web is the query engine behind many national statistics bureaus — Statistic
 
 ## When you see this
 
-- URL path contains `/api/v1/<lang>/...` under a statistics-bureau domain (e.g. `statfin.stat.fi/PxWeb/api/v1/en/StatFin/...`, `api.scb.se/OV0104/v1/doris/en/ssd/...`).
+- URL path contains `/api/v1/<lang>/...` under a statistics-bureau domain.
 - GET on a node returns a **list of sub-nodes or table ids**; GET on a table returns its **variable metadata**.
 - Data is retrieved by **POST** with a `{"query": [...], "response": {"format": "json-stat2"}}` body.
 
@@ -19,7 +19,8 @@ PX-Web is the query engine behind many national statistics bureaus — Statistic
 ```python
 import httpx
 
-BASE = "https://statfin.stat.fi/PxWeb/api/v1/en"
+BASE = "https://statistics.example.com/api/v1/en"  # illustrative; use the observed API root
+TABLE_PATH = "<table_path>"  # discover a leaf table by navigating the API tree
 
 def px_table_meta(table_path: str) -> dict:
     r = httpx.get(f"{BASE}/{table_path}", timeout=60); r.raise_for_status()
@@ -38,12 +39,13 @@ def px_fetch(table_path: str, selection: dict[str, list[str]]) -> dict:
     r.raise_for_status()
     return r.json()
 
-meta = px_table_meta("StatFin/asuminen/statfin_asas_pxt_115a.px")
-# Inspect meta["variables"] to learn the codes, then:
-data = px_fetch(
-    "StatFin/asuminen/statfin_asas_pxt_115a.px",
-    {"Vuosi": ["*"], "Alue": ["*"], "Tiedot": ["*"]},   # year × region × measure
-)
+meta = px_table_meta(TABLE_PATH)
+# Start with one value per dimension; choose the required codes from the metadata.
+selection = {
+    variable["code"]: variable["values"][:1]
+    for variable in meta["variables"]
+}
+data = px_fetch(TABLE_PATH, selection)
 ```
 
 ## Parsing the response (JSON-stat2)

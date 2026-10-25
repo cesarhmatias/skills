@@ -187,15 +187,13 @@ def _is_error_page(html: str) -> bool:
 
 ```python
 # BAD: works on this deployment, breaks on every other site using the same template
-data = {"ctl00$Content$mFromDatePicker$dateTextBox": "01/01/2024"}
+data = {"ctl00$Main$DateFrom": "01/01/2024"}  # illustrative control name
 ```
 
 ```python
 # GOOD: discover the control name from the live DOM
-from_field = next(
-    inp["name"] for inp in soup.find_all("input")
-    if "mFromDatePicker$dateTextBox" in (inp.get("name") or "")
-)
+label = soup.find("label", string="Created from")  # inspect the target's label
+from_field = soup.find("input", id=label["for"])["name"]
 data = {from_field: "01/01/2024"}
 ```
 
@@ -208,8 +206,8 @@ data = {from_field: "01/01/2024"}
 ```python
 # BAD: parsed one detail page correctly, declared the parser done
 detail = parse_detail(html_of_first_record)
-assert detail["decision_date"]  # passes
-# ... 10 000 records later, half are missing decision_date because the field
+assert detail["created_at"]  # passes
+# ... 10 000 records later, half are missing created_at because the field
 # uses a different label on some categories
 ```
 

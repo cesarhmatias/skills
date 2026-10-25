@@ -11,7 +11,7 @@ Look for one of these signals — when the site exhibits *any* of them, this pat
 - The first GET returns a JS-only challenge page (rotating script, encrypted cookie, "Checking your browser" interstitial); subsequent requests with the cookie set behave normally
 - Initial entry sets an opaque session token cookie (`__cf_bm`, `incap_ses_*`, `_abck`, `XSRF-TOKEN`, custom session ID) that the API endpoint requires; once you have it, the API doesn't re-challenge
 - Terms-of-service / age-gate page must be POST-accepted (`__doPostBack` style or a button click) before data endpoints are reachable
-- A specific header (e.g. `X-IntraMaps-Session`, a CSRF token written to the DOM by JS) must be captured live, but doesn't expire for the session's lifetime
+- A custom session header or CSRF token written to the DOM by JS must be captured live, but doesn't expire for the session's lifetime
 - TLS / fingerprinting passes via the real Chrome — useful when `curl_cffi` impersonation alone isn't enough but a manual cookie copy is
 
 If the protection re-challenges on every request, or if data is computed client-side after a JS pipeline, this pattern won't work — use full browser automation instead (`browser-techniques.md`).
@@ -39,7 +39,7 @@ def bootstrap_session(entry_url: str) -> dict:
         # Capture any custom session header the server emits in a response
         captured_headers: dict[str, str] = {}
         def on_response(resp):
-            for h_name in ("x-session-id", "x-intramaps-session", "x-request-id"):
+            for h_name in ("x-example-session", "x-example-csrf"):
                 if v := resp.headers.get(h_name):
                     captured_headers[h_name] = v
         page.on("response", on_response)

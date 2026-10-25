@@ -9,7 +9,7 @@ Recognize ASP.NET WebForms by any of these signals:
 - URLs end in `.aspx`
 - Page source contains hidden inputs named `__VIEWSTATE`, `__VIEWSTATEGENERATOR`, `__EVENTVALIDATION`, `__EVENTTARGET`, `__EVENTARGUMENT`, `__PREVIOUSPAGE`
 - JS function `__doPostBack(eventTarget, eventArgument)` is defined inline
-- Control names follow `ctl00$MainBodyContent$...` or similar `ctlNN$Container$Control$SubControl` pattern
+- Control names follow a `ctlNN$Container$Control` pattern
 - Form action is the same URL the page was served from (POST-to-self)
 - Page has a `<form runat="server">` (visible in source as `<form ... id="aspnetForm">`)
 
@@ -27,7 +27,7 @@ ASP.NET WebForms simulates desktop-app UI on top of HTTP by **serializing the en
 
 ## Pattern — multi-step navigation
 
-A typical flow has 2-4 sequential POSTs before you reach a results page. Each step must echo back ALL hidden fields from the previous response.
+A typical flow has 2-4 sequential POSTs before you reach a results page. Each step must echo back ALL hidden fields from the previous response. The control names below are illustrative; discover the target's actual names from its DOM.
 
 ```python
 from bs4 import BeautifulSoup
@@ -52,8 +52,8 @@ r2 = session.post(
     LIST_URL,
     data={
         **_hidden_fields(soup1),
-        "mDataGrid:Column0:Property": "<radio_value_discovered_from_DOM>",
-        "ctl00$MainBodyContent$mContinueButton": "Next",
+        "ctl00$Main$Category": "books",
+        "ctl00$Main$Next": "Next",
     },
     impersonate="chrome", timeout=60,
 )
@@ -64,9 +64,9 @@ r3 = session.post(
     r2.url,
     data={
         **_hidden_fields(soup2),
-        "ctl00$MainBodyContent$mSearchControl$mFromDatePicker$dateTextBox": "01/01/2024",
-        "ctl00$MainBodyContent$mSearchControl$mToDatePicker$dateTextBox": "31/12/2024",
-        "ctl00$MainBodyContent$mSearchControl$mSearchButton": "Search",
+        "ctl00$Main$DateFrom": "01/01/2024",
+        "ctl00$Main$DateTo": "31/12/2024",
+        "ctl00$Main$Search": "Search",
     },
     impersonate="chrome", timeout=60, allow_redirects=True,
 )
@@ -91,7 +91,7 @@ session.post(
     results_url,
     data={
         **_hidden_fields(prev_soup),
-        "__EVENTTARGET": "ctl00$MainBodyContent$mPagingControl$pageButton_3",
+        "__EVENTTARGET": "ctl00$Main$Page3",
         "__EVENTARGUMENT": "",
     },
 )
@@ -100,7 +100,7 @@ You must POST and carry forward the VIEWSTATE. The `__EVENTTARGET` value is the 
 
 **Flavor C — grid-control event:**
 ```python
-data["__EVENTTARGET"] = "ctl00$ContentPlaceHolder$gridResults"
+data["__EVENTTARGET"] = "ctl00$Main$Results"
 data["__EVENTARGUMENT"] = "Page$3"
 ```
 
@@ -146,42 +146,25 @@ Call this after every navigation step. If true: re-boot the whole nav sequence f
 
 ## Dynamic control IDs (`ctl04`, `ctl09`, etc.)
 
-The auto-generated control IDs change between deployments of the same template. Don't hardcode `ctl04$mFromDatePicker$dateTextBox` based on one site — discover it live:
+The auto-generated control IDs change between deployments of the same template. Discover inputs from their labels or other stable DOM relationships instead of copying a control name from another site. This illustrative form associates a label with its input using `for` and `id`:
 
 ```python
 soup = BeautifulSoup(r.text, "html.parser")
 
-# Find the date-from input dynamically
-from_field = next(
-    (inp["name"] for inp in soup.find_all("input")
-     if "mFromDatePicker$dateTextBox" in (inp.get("name") or "")),
-    None,
-)
-to_field = next(
-    (inp["name"] for inp in soup.find_all("input")
-     if "mToDatePicker$dateTextBox" in (inp.get("name") or "")),
-    None,
-)
+def input_name_for_label(soup: BeautifulSoup, label_text: str) -> str:
+    label = soup.find("label", string=lambda text: text and text.strip() == label_text)
+    if label is None or not label.get("for"):
+        raise ValueError(f"No associated input for {label_text!r}")
+    field = soup.find("input", id=label["for"])
+    if field is None or not field.get("name"):
+        raise ValueError(f"Input has no submitted name for {label_text!r}")
+    return field["name"]
+
+from_field = input_name_for_label(soup, "Created from")
+to_field = input_name_for_label(soup, "Created to")
 ```
 
 The same template deployed across many instances will use `ctl04` here and `ctl09` there. Always discover.
-
-## Radio-as-UI-helper quirk
-
-Some search forms only expose preset radio buttons ("Last 30 days", "Last 7 days", etc.) — no "custom from-to" option. **But the server often still honours the date textboxes when no radio is checked.** Worth testing:
-
-```python
-# Submit ONLY the date textboxes, omit any DateSearchRadioGroup field entirely
-data = {
-    **_hidden_fields(soup),
-    "ctl00$...$mFromDatePicker$dateTextBox": "01/01/2024",
-    "ctl00$...$mToDatePicker$dateTextBox": "31/12/2024",
-    "ctl00$...$mSearchButton": "Search",
-    # NO entry for DateSearchRadioGroup
-}
-```
-
-If the server falls back to the textboxes when no radio is set, you have unrestricted custom date range. If it doesn't, fall back to sliding windows of the largest preset.
 
 ## Stateful internal IDs
 
@@ -216,22 +199,15 @@ This turns a stateful multi-POST WebForms flow into a **single GET → single de
 
 ## Multi-tenant SaaS recognition
 
-When the same WebForms template is deployed on a SaaS host shared by many customers, you'll see a recognizable URL convention:
-
-- Tenant code rides in a query param: `?r=<TENANT>.WEBGUEST&f=<FORM_CODE>`
-- Or as a path segment: `/<TENANT>/Enquiry/EnquiryLists.aspx`
-- Host is shared across all tenants (e.g. `<region>-web.<vendor>.com`)
-- The entry URL boots a session-per-tenant; from there, `__doPostBack` works identically across tenants
-
-**Implication:** once you have one tenant working, every other tenant on the same SaaS is a 5-minute port — only the tenant code and (sometimes) the visible field labels change. Build the crawler parametrically (`tenant`, `form_code`) instead of cloning per-tenant scripts. Pair this with `templated-cms-schema-drift.md` for the label-drift handling.
+Some hosted WebForms products serve multiple tenants. Keep the entry URL and tenant configuration separate from extraction logic, discover each deployment's navigation from its own DOM or HAR, and validate field labels before reusing a parser. Pair this with `templated-cms-schema-drift.md` for label-drift handling.
 
 ## Gotchas
 
 - `__VIEWSTATE` is **massive** (often >10 KB). Don't log it or store it in payload. Echo it forward, then drop it.
 - The `__VIEWSTATE` value depends on the response that generated it — you can't construct one from scratch. Always grab it from the previous response.
 - Some sites add `__VIEWSTATE` validation against IP address — losing the sticky proxy session breaks the form. See `../networking/proxy-zyte.md`.
-- `Status` and `Description` columns in result tables often come from the row HTML, but full data (decision date, addresses, applicant) is **only on the detail page**. Plan for N+1 fetches.
-- Result tables typically have `id="gridResults"` or similar. Use that as the anchor when parsing — pages may have multiple `<table>` elements.
+- A catalog's list page may show only item names and summaries; specifications or stock history may require detail-page requests. Check the required fields before planning N+1 fetches.
+- Pages may have multiple `<table>` elements. Inspect the DOM to identify the results table instead of assuming a particular ID.
 
 ## Minimal working crawler skeleton
 

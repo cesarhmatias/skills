@@ -29,11 +29,11 @@ Ask the user for **2–10 seed keywords** describing the data they want. Frame t
 Tell me 2 to 10 keywords that describe the data you want.
 
 Aim for a mix:
-- The thing itself (e.g. "building permits", "election results", "company filings")
-- The owner/regulator (e.g. "city council", "SEC", "INEP")
-- Geographic context (e.g. "Victoria Australia", "São Paulo", "EU member states")
-- A field name you expect to see (e.g. "decision date", "CNPJ", "permit number")
-- A document type if relevant (e.g. "annual report", "register", "open data")
+- The thing itself (e.g. "product catalog", "event schedule", "job listings")
+- The publisher (e.g. "retailer", "marketplace", "event organizer")
+- Geographic context (e.g. the city, region, or country relevant to your search)
+- A field name you expect to see (e.g. "product code", "publication date", "category")
+- A document type if relevant (e.g. "catalog", "CSV export", "JSON feed")
 
 Even 2 keywords are enough to start — I'll expand the list.
 ```
@@ -69,16 +69,16 @@ Produce **≥300 distinct Google queries** by applying a set of ~25 templates to
 
 | Operator | Effect | Example |
 |---|---|---|
-| `"..."` | Exact phrase match | `"decision date"` |
+| `"..."` | Exact phrase match | `"product code"` |
 | `-term` | Exclude | `used cars -rental` |
 | `OR` (uppercase) | Union | `"used car" OR "pre-owned"` |
-| `( )` | Group | `(approved OR refused) site:example.com` |
-| `site:` | Restrict to domain or TLD | `site:gov.au`, `site:example.com` |
-| `inurl:` | Term must appear in URL | `inurl:eplanning` |
-| `intitle:` | Term must appear in `<title>` | `intitle:"application register"` |
+| `( )` | Group | `(catalog OR inventory) site:example.com` |
+| `site:` | Restrict to domain or TLD | `site:example.com` |
+| `inurl:` | Term must appear in URL | `inurl:catalog` |
+| `intitle:` | Term must appear in `<title>` | `intitle:"product catalog"` |
 | `intext:` | Term must appear in body | `intext:"open data"` |
 | `filetype:` | Restrict by file extension | `filetype:pdf`, `filetype:xlsx`, `filetype:csv`, `filetype:json` |
-| `*` | Wildcard for one word | `"decision * 2024"` |
+| `*` | Wildcard for one word | `"catalog * 2024"` |
 | `..` | Numeric range | `used car 2018..2024` |
 | `cache:` | Google's cached copy | `cache:example.com/page` |
 | `related:` | Sites similar to given URL | `related:example.com` |

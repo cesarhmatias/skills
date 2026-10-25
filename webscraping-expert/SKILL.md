@@ -978,7 +978,7 @@ The skill is organized by problem domain. Each folder has a `README.md` describi
 - **TLS impersonation default:** `curl_cffi` with the generic alias `impersonate="chrome"` (auto-latest — never hardcode an old version). Faster alternatives: `primp`/`rnet`. See `anti-bot/browser-impersonation.md`, `anti-bot/tls-http-clients.md`.
 - **Stealth browser default:** `patchright` (`channel=chrome`) for Cloudflare; `camoufox` (`humanize=True`) for DataDome/behavioral. `playwright-stealth` is superseded. See `anti-bot/modern-stealth-browsers.md`.
 - **AI/adaptive extraction:** when markup is chaotic or drifts, consider `scrapling` (adaptive selectors), `crawl4ai`/`firecrawl` (LLM-ready), or an LLM-with-schema pass — but never over structured/stable APIs. See `reference/ai-extraction.md`.
-- **Concurrency default:** ask first. When approved: per-thread `curl_cffi` sessions, ~10 workers. See `reliability/concurrency-curl-cffi.md`.
+- **Concurrency default:** ask first. After the user agrees: per-thread `curl_cffi` sessions, ~10 workers. See `reliability/concurrency-curl-cffi.md`.
 - **Idempotent re-runs:** load known IDs at startup, skip before expensive fetches; content-hash to detect change. See `reliability/idempotent-runs.md`.
 
 ### Growing this skill

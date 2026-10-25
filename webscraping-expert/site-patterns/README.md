@@ -9,11 +9,11 @@ Each file follows the same skeleton: **When you see this** → **How it works** 
 | File | Recognize by |
 |---|---|
 | `arcgis-feature-server.md` | Path contains `/arcgis/rest/services/<service>/{FeatureServer,MapServer}/<N>/query`, response `{features:[{attributes,geometry}], exceededTransferLimit}`. |
-| `aspnet-webforms.md` | URL ends in `.aspx`, hidden `__VIEWSTATE` field, `__doPostBack` JS function, control IDs like `ctl00$MainBodyContent$...` |
+| `aspnet-webforms.md` | URL ends in `.aspx`, hidden `__VIEWSTATE` field, `__doPostBack` JS function, control IDs like `ctl00$Main$...` |
 | `ckan-dkan.md` | Endpoints `/api/3/action/{package_search,package_show,datastore_search}`, envelope `{success, result:{results,count}}`. Footer mentions CKAN/DKAN. |
 | `datatables-server-side.md` | POST with `draw/start/length/columns[N][data]`, response `{draw, recordsTotal, recordsFiltered, data:[...]}`. |
 | `embedded-bi-dashboard.md` | Public BI embeds (Power BI `app.powerbi.com/view?r=`, Tableau Public, Looker Studio, Metabase). Canvas + virtualized DOM + binary query payload. |
-| `geojson-bbox-map-portal.md` | Bespoke map-portal POST with `BBox`/bounds + viewport + epoch-ms date filter, response GeoJSON-shaped. Non-Esri. |
+| `geojson-bbox-map-portal.md` | Custom spatial API queried by bounding box, returning GeoJSON features; discover its schema from map requests. |
 | `graphql.md` | POST to `/graphql` (or `/api/graphql`, `/query`) with body containing `query`/`variables`/`operationName` or `extensions.persistedQuery`. HTTP 200 + `{"data": ..., "errors": [...]}` shape. |
 | `legacy-cms.md` | ColdFusion (`.cfm`), classic ASP (`.asp`), JSP (`.jsp`), or any portal returning `HTTP 200 + "Error"` page on invalid sessions. |
 | `nextjs-app-router-rsc.md` | `self.__next_f.push([...])` in HTML, or requests with `RSC: 1` + `Accept: text/x-component`. React Server Component flight data — the modern Next.js shape (vs Pages Router `__NEXT_DATA__`). |

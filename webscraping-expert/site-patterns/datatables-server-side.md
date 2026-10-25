@@ -1,6 +1,6 @@
 # DataTables.net — server-side protocol
 
-[DataTables.net](https://datatables.net/) is a JavaScript table widget bundled with thousands of admin panels, council/government portals, and B2B SaaS apps — anywhere a developer needed "a paginated, sortable, searchable table" without designing a custom API. When configured in **server-side mode**, it speaks a recognizable wire protocol you can replay with plain HTTP.
+[DataTables.net](https://datatables.net/) is a JavaScript table widget bundled with thousands of admin panels, product catalogs, and B2B SaaS apps — anywhere a developer needed "a paginated, sortable, searchable table" without designing a custom API. When configured in **server-side mode**, it speaks a recognizable wire protocol you can replay with plain HTTP.
 
 ## When you see this
 
@@ -24,7 +24,7 @@ The `draw` field is an echo counter: send any integer, the server echoes it back
 ```python
 import httpx
 
-ENDPOINT = "https://app.example.com/Application/GetApplications"
+ENDPOINT = "https://app.example.com/api/catalog/rows"  # illustrative endpoint
 PAGE_SIZE = 100  # server-side max is often 100 or 500
 
 def _form_body(start: int, length: int, sort_col: int = 0, sort_dir: str = "asc") -> dict:
@@ -37,9 +37,9 @@ def _form_body(start: int, length: int, sort_col: int = 0, sort_dir: str = "asc"
         "search[value]": "",          # global search filter
         "search[regex]": "false",
     }
-    # Declare the columns the server expects. Read these from the table's
-    # DataTable() init in view-source; the order must match.
-    for i, name in enumerate(["id", "address", "status", "lodged", "decided"]):
+    # These catalog fields are illustrative. Read the actual columns from the
+    # table's DataTable() init in view-source; the names and order must match.
+    for i, name in enumerate(["id", "name", "category", "price", "updated_at"]):
         body[f"columns[{i}][data]"] = name
         body[f"columns[{i}][name]"] = ""
         body[f"columns[{i}][searchable]"] = "true"
@@ -67,10 +67,10 @@ Response `data` comes in one of two shapes:
 
 ```json
 // Array-of-arrays (columns declared as positional integers in the init)
-"data": [["12345", "1 Main St", "Approved", "2024-01-15"], ...]
+"data": [["item-001", "Example item", "Example category", 19.99, "2024-01-15"], ...]
 
 // Array-of-objects (columns declared as named strings in the init)
-"data": [{"id": "12345", "address": "1 Main St", "status": "Approved", "lodged": "2024-01-15"}, ...]
+"data": [{"id": "item-001", "name": "Example item", "category": "Example category", "price": 19.99, "updated_at": "2024-01-15"}, ...]
 ```
 
 Inspect one response to see which one you have, then pick a row parser accordingly.
@@ -81,18 +81,18 @@ DataTables requires the request to declare every column with the **exact name** 
 
 ```bash
 # Most useful one-liner: grep the DataTable() init out of the page source
-curl -s 'https://app.example.com/Applications' | grep -oE '\$\(["'\''](#[A-Za-z0-9_-]+)["'\'']\)\.DataTable\([^)]*\)' | head
+curl -s 'https://app.example.com/catalog' | grep -oE '\$\(["'\''](#[A-Za-z0-9_-]+)["'\'']\)\.DataTable\([^)]*\)' | head
 ```
 
 Or open devtools, search the response text for `serverSide` — the `columns: [...]` array beside it lists exactly what to send.
 
 ## The two-step "seed then query" requirement
 
-Many DataTables apps use a separate `/AdvancedSearch` (or `/Search`, `/Filter`) endpoint to **populate a server-side session state** (date range, status filter, etc.) before the table will return useful results. The flow:
+Some DataTables apps use a separate endpoint to **populate server-side session state** (date range, category filter, etc.) before the table will return useful results. An illustrative flow, using fictional paths:
 
 1. GET the page hosting the table — collects an `ASP.NET_SessionId` / `JSESSIONID` cookie
-2. POST to `/AdvancedSearchResult` with the filter values → seeds the session; usually returns a small "OK" response
-3. POST to `/GetApplications` (the DataTables endpoint) → now returns filtered rows for the seeded session
+2. POST to `/api/catalog/filters` with the filter values → seeds the session; usually returns a small "OK" response
+3. POST to `/api/catalog/rows` (the DataTables endpoint) → now returns filtered rows for the seeded session
 
 Skipping step 2 makes the table return either everything (unfiltered) or zero rows, depending on the app's default. **If the response total seems wrong, suspect a missing seed step.**
 

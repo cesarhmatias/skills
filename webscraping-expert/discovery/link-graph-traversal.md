@@ -1,6 +1,6 @@
 # Link-graph traversal — finding data within a site
 
-When the user gives you a starting URL but **the data isn't on that page directly** (e.g. they hand you a retailer's homepage and the full product catalog is buried three clicks deep, or a council homepage where the register you want sits behind several menus), you have to find the data page yourself. This file is the recipe.
+When the user gives you a starting URL but **the data isn't on that page directly** (e.g. they hand you a retailer's homepage and the full product catalog is buried three clicks deep, or an event site where the schedule sits behind several menus), you have to find the data page yourself. This file is the recipe.
 
 A useful mental model is a "binary tree" — recursive descent through links, narrowing as you go. The actual technique is graph traversal of the site's internal link structure, scored by signals that indicate "this page probably has the data".
 
@@ -213,7 +213,7 @@ While traversing, score each fetched page on signals that suggest "this page act
 |---|---|---|
 | Page contains a `<table>` with >5 rows of consistent structure | +5 | `len(soup.find_all("tr")) > 5` + uniform `<td>` count per row |
 | Page has pagination controls | +3 | links/buttons with `page=`, `next`, "Page 2", `<nav class="pagination">` |
-| Page has a date column header (`Date`, `Lodged`, `Decision Date`, etc.) | +3 | text match in `<th>` |
+| Page has a date column header (`Date`, `Published`, `Updated`, etc.) | +3 | text match in `<th>` |
 | Page has a search/filter form | +2 | `<form>` with text inputs, date pickers, dropdowns |
 | Page contains keyword-density of user keywords > 1% | +2 | count keyword hits / word count |
 | Page is a list of downloadable files (`.csv`, `.xlsx`, `.pdf`) | +5 | href extensions in anchor list |
