@@ -63,6 +63,59 @@ are copying. Change at least the world and the camera grammar, unless the topic 
 the hook pull: a folder only when a folder fits the topic. Otherwise the pull comes from the topic (a cable being yanked,
 a parcel opened, a phone tapped).
 
+## 2b. The world comes from the MEDIUM of the topic (the algorithm reel, 2026-10-28)
+Second bar video: *"O algoritmo de cada rede"* (Instagram · X · LinkedIn · TikTok, 89.8 s, 9:16). The user's verdict on
+the render: "esse vídeo está excepcional, não tenho nada a dizer que precisa melhorar". It got there only on the
+third direction; the first two were rejected from their scene sheets. The difference is the lesson of this section.
+
+| direction | what it was | verdict | why it failed / worked |
+|---|---|---|---|
+| 1 · lab bench | a stopwatch, a brass balance, an hourglass on a bench, one per network | "fundo feio, estrutura feia" | a metaphor laid over the content; small boxes on a beige frame; nothing from the real platforms |
+| 2 · feed factory | six halls joined by a conveyor belt, the video card riding it, dials and hoppers | "essa esteira não tá legal, criativos ruins" | §2 applied by habit: the pipeline reel's grammar (a physical path) pasted onto a software topic; the hero panels were still weak (dials, a scoreboard with glow) |
+| 3 · product-UI world | real phones with the real apps, panels in each platform's own style, real prints with a marker, a real photo of the person named, the math on screen | approved | every frame shows the thing the voice talks about, at the quality of the product itself |
+
+**The rule.** §2 says "invent the world for THIS topic". Add: *the world is the medium the topic lives in.*
+- A **physical process** (data flowing through systems, a cable on the seabed, a machine, logistics) → the illustrated
+  world with one physical path (§2, craft.md §8b): a pipe, a road, floors, the camera riding it.
+- **Software, platforms, algorithms, money, anything people experience on a screen** → the **product-UI world**: phones
+  showing the real app screens, panels drawn in the platform's own design language, real prints entering big with the
+  marker on the spoken phrase, real photos of named people, numbers computed on screen. The backgrounds are a *studio*
+  per brand (brand-colour gradient, blurred brand glyphs in the bleed zone, a floor with the phone's reflection), never
+  a metaphor. `templates/ui-kit.js` has the components.
+- Either way keep the two devices of §2: **one travelling subject** (here the video itself — the creator's own thumbnail
+  — published to four networks) and **one recurring device** (a report card, "a nota do teu vídeo": empty → one row
+  measured per act → bombou/flopou → the four tips). A stepper pill of the four app icons at the top is the map.
+- **Anti-copy check, extended:** if the world is a path with stations and the topic is not a physical process, you
+  are re-skinning the pipeline reel. Stop and ask which screen the viewer would open to see this.
+
+**What "detail" meant in the approved version** (use as a checklist for product-UI worlds):
+- phones with Dynamic Island, a 9:41 status bar, side keys, a contact shadow and a floor reflection
+  (`-webkit-box-reflect`); the screen content is a real-looking app, not a wireframe;
+- one hero panel per act in that platform's own style: Instagram → an *Insights* card with a segmented control
+  (Seguidores | Não seguidores) and gradient bars; X → a black strip with mono numbers that adds the real weights term
+  by term (0,5 + 13,5 + 75 = 89, then −74 −369 = −354) — the user asked for *less* glow and *more* explanation;
+  LinkedIn → a "tempo lendo" timer counting while a highlight reads the post line by line, then the feed whips up and
+  the "força do post" bar drops red; TikTok → a dark signals panel with toggles (seguidores OFF, vídeos anteriores OFF)
+  and a cyan→red bar for "assistir até o fim" that fills with the phone's progress bar; then a red strike-through on
+  the two factors that don't count;
+- real material at the moment it is spoken: the Mosseri photo card on "o chefe da rede", the print on "contou os três
+  sinais", the GitHub repo on "código foi aberto", the weights README with the marker sweeping each line on its
+  number, the LinkedIn Engineering post on "clique e curtida são raros", the TikTok Newsroom on "não é um fator direto";
+- every state change lands on its word: the TikTok toggle flips in the composer, the DM bubble is sent, the badge
+  "★ mais forte" pops, the segmented control slides, the "Seguir" button is pressed by a hand cursor and swaps to
+  "Seguindo ✓", the strike-through is drawn;
+- what was removed after the user's notes: glow on numbers, invented statistics, a "100% assistido" frame nobody
+  understood — replaced by the reel's own progress bar completing, a "visto até o fim" chip and an @handle sign-off.
+
+**Process that produced it** (what changed between the rejected and the approved attempt):
+1. The script was rewritten first (craft.md §1c: open loop, aside, mid-video follow, "que nem você fez agora") and
+   the take regenerated; the visuals were then keyed to that take and never changed it.
+2. A scene sheet of every beat was rendered and shown BEFORE animating — twice rejected cheaply, in minutes not hours.
+3. The approved sheet was animated with every element on its spoken word, then the loop of §6 ran until clean:
+   layout sweep (898 instants → OK), caption QC (no flashing word), a 30 fps draft, stills at every MARK
+   (−0.12 / +0.3 / +0.9 s), the final render — stopped and restarted three times for details found in the review
+   sheets (a collage row on the hairline, a chip over a fading headline, an 8-word caption wider than the band).
+
 ## 3. Script and voice first (craft.md §1b, §7), with these lessons
 - The first narrated line must not repeat the hook. "Uma pipeline de dados é…" right after the on-camera question was
   cut.
@@ -140,6 +193,12 @@ the bar video was approved from its frames ("Gostei da direção").
   - For a long ride, pull back until the whole path is visible, glide, then push in. A straight scroll "bugou".
   - Keyframes are `[t0, t1, cx, cy, s]` on word times, and no two moves overlap.
 - **Talking-head hook**: caption collage + pull (craft.md §8c), built with the topic's own object (§2).
+- **Dims never alone.** A dim/blur over the scene enters together with the card it serves and leaves with it; a dimmed
+  frame with nothing on it for 0.5 s reads as a flat frame (it happened at the Instagram act's start and was fixed).
+- **Headlines fade and rise** (`hlB`): a slide-up out of the line box crosses the hero for half a second and the layout
+  check sees it. Exits finish before entries: the outgoing headline's `tout` ≤ the next one's `tin` − 0.55 s.
+- **Hidden means visibility:hidden**, not opacity 0 on a parent: the layout check (and a careful eye) still finds text
+  whose ancestor is transparent. `vo(el, o)` sets both.
 
 ## 6. The self-review loop: find the bugs yourself
 Every item below is a bug the user had to point out in v2–v8. Run the whole list before every showing.
@@ -168,6 +227,14 @@ Every item below is a bug the user had to point out in v2–v8. Run the whole li
     mispronounced words.
 12. **Edges of the film.** Is the hook cut at the first word, does the outro start on the right word ("Me segue"), and
     are there no black frames at the seams? Check the frame counts.
+13. **Collage metrics.** Measure the real text rects (`getClientRects`) before placing stacked rows: Anton's box is
+    ~1.5 em and Instrument Serif's ~1.3 em, far taller than the glyphs. Rows that look spaced can still overlap.
+14. **Head position.** Draw a grid over a real hook frame and keep every collage row above the hairline (that reel:
+    rows 262–598, head top at 600); the pull object rises over the chest, never the face.
+15. **Captions.** No last word of a chunk visible < 0.3 s (the next chunk waits up to 0.18 s instead); no chunk wider
+    than the band at the minimum size; `qc_captions.py` must list no SHORT HOLD.
+16. **Sync with an on-camera hook.** `qc_video.py` cross-correlates from 0 s; when the take starts after the hook,
+    cross-correlate the MP4 audio from `OFF` yourself (it must be 0 ms) before trusting its "FIX".
 
 Write what you found in `review/review_report.md`, fix it, re-render only the affected ranges, and run the list again.
 Repeat until a full pass finds nothing. Then run QC "Extreme" (craft.md §9) on the final render.

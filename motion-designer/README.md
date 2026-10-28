@@ -29,6 +29,7 @@ frame-perfect from code (no After Effects), then checked frame by frame before y
 | `references/brainstorm.md` | formats for products and for story/curiosity content |
 | `templates/beat-edit.html` + `references/beat-edit.md` | beat edits: music-driven hype edits (cuts on every bass hit, drop, giant word slams, strobe, grain) — `beat_map.py`, `slowed_reverb.py`, `vectorize_logo.sh` |
 | `templates/timeline.html` | deterministic timeline: safe zones, layout bands, `Captions()`, `EndCard()` |
+| `templates/ui-kit.js` | product-UI world components (phones, studio backgrounds, stepper, print cards with marker, report card, outlined captions, timing helpers) — the pattern approved for software/platform topics |
 | `templates/three-kit.js` + `lib/three/` | Three.js r170 (MIT, vendored) + ready 3D recipes: exploded layers, globe with routes, seabed + cable with a light pulse, bloom, HDRI lighting |
 | `scripts/fetch_assets.py` | three.js examples library, Wikimedia Commons, Poly Haven, NASA — licence logged per file |
 | `scripts/prep_image.py` | photo cards for 9:16, cut-outs, grading, grain |

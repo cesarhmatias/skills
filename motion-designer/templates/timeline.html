@@ -148,18 +148,20 @@ function Captions(parent,WORDS,{max=4,maxChars=24,fs=tall0()?60:48,hold=.4,hide=
     for(let e=1;e<=n;e++)for(let b=Math.max(0,e-max-2);b<e;b++){if(best[b]>=1e9)continue;
       const ws=S.slice(b,e),last=S[e-1],nx=S[e];if(nx!=null&&inNumber(last,nx))continue;
       const L=ws.map(k=>WORDS[k].w).join(' ').length,gap=nx!=null?WORDS[nx].s-WORDS[last].s:9;
-      const c=1+(L>maxChars?(L-maxChars)*4:0)+(ws.length>max?(ws.length-max)*6:0)+(gap<hold?(hold-gap)*40:0)
+      const c=1+(L>maxChars?(L-maxChars)*12:0)+(ws.length>max?(ws.length-max)*10:0)+(gap<hold?(hold-gap)*160:0)
              +(nx!=null&&!/[,:]$/.test(WORDS[last].w)?.8:0)+(ws.length===1&&n>1?1.5:0);
       if(best[b]+c<best[e]){best[e]=best[b]+c;from[e]=b;}}
     const cut=[];for(let e=n;e>0;e=from[e])cut.unshift(S.slice(from[e],e));chunks.push(...cut);}
   const next=i=>WORDS[i+1]?WORDS[i+1].s:1e9;
   const win=chunks.map((c,k)=>{const l=c[c.length-1],nxc=chunks[k+1]?WORDS[chunks[k+1][0]].s:1e9;
     return [WORDS[c[0]].s-.02,Math.min(nxc-.03,Math.max(WORDS[l].s+.45,Math.min(WORDS[l].e+.6,next(l)-.05)))];});
+  // the last word of a chunk stays ≥ 0.3 s even when the next sentence starts at once (the next chunk waits that long)
+  for(let k=0;k<win.length-1;k++){const l=chunks[k][chunks[k].length-1],minEnd=WORDS[l].s+.3;if(win[k][1]<minEnd){win[k][1]=minEnd;win[k+1][0]=Math.max(win[k+1][0],minEnd);}}
   const els=chunks.map(c=>c.map(i=>{const sp=document.createElement('span');sp.textContent=WORDS[i].w;sp.style.display='inline-block';return sp;}));
   let shown=-1;
   return {box,chunks,seek(t,off=false){const k=off?-1:win.findIndex(([a,b])=>t>=a&&t<b);
     if(k!==shown){box.replaceChildren(...(k<0?[]:els[k]));shown=k;box.style.fontSize=fs+'px';   // the whole chunk, laid out once
-      for(let f=fs;k>=0&&box.scrollWidth>ZONES.CAP.w&&f>fs*.6;f-=2)box.style.fontSize=f+'px';}   // fit width once per chunk
+      for(let f=fs;k>=0&&box.scrollWidth>ZONES.CAP.w&&f>fs*.5;f-=2)box.style.fontSize=f+'px';}   // fit width once per chunk
     if(k<0){plate.style.opacity=0;return;}const [,end]=win[k],fo=1-seg(t,end-.06,end);
     chunks[k].forEach((i,j)=>{const w=WORDS[i],sp=els[k][j],p=E.oB(seg(t,w.s-.02,w.s+.18)),on=t>=w.s-.02;
       const nxt=chunks[k][j+1],newest=on&&(nxt==null||t<WORDS[nxt].s-.02);

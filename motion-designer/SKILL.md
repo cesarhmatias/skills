@@ -29,6 +29,9 @@ What's inside (absolute paths come from this skill's folder — call it `$SKILL`
   campaign scripts only when the user picks "Campaign" in Q1b, review_frames only with QC "Extreme".
 - Other engines (you pick per video, Step 2b): **HyperFrames** (official skills `/hyperframes`, `/hyperframes-cli`, `/hyperframes-registry`,
   `/media-use`) and **Remotion** (official skill `/remotion-best-practices`) — `references/engines.md`.
+- `templates/ui-kit.js` — the product-UI world (max-quality §2b): studio backgrounds per brand, phone with status bar
+  and reflection, stepper pill, print card with a marker that sweeps on the word, report card, outlined captions,
+  `pop/vo/kv/hlB` timing helpers. Include it after the core of `timeline.html`.
 - `templates/beat-edit.html` — motion kit for beat edits: shots locked to the bass hits, drop, pulse/shake/whip, word
   slams, strobe, grain; each video writes its own shot list. Scripts for it: `beat_map.py` (hits, drop, silences →
   beats.json/beats.js), `slowed_reverb.py` (slowed + reverb / sped up), `vectorize_logo.sh` (PNG logo → crisp SVG).
@@ -292,7 +295,10 @@ Recommend word-by-word when Reels/TikTok/Shorts is among the platforms. Captions
              "Dynamic"            — snappy entrances and whips on beats (memes, showreels, music-driven)
 ```
 Defaults when the user skips: hook from the idea, retention "Yes" when ≥ 40 s, pacing "Calm" when there is 3D or
-narration. All three feed craft.md §1c and §3; the QC strictness comes from the quality level (Q1c, craft.md §9).
+narration. When the on-camera hook was recorded before the script (a series), the retention moves that held a 90 s
+explainer are in craft.md §1c: an open loop naming a concrete extra item in the first narrated sentence, a handwritten
+aside over the hook, a mid-video follow CTA followed by a reason to stay, and a closing line that uses the viewer's own
+behaviour as proof. All three feed craft.md §1c and §3; the QC strictness comes from the quality level (Q1c, craft.md §9).
 
 ## Step 2 — Targeted research (after the idea)
 
@@ -342,6 +348,10 @@ before building; the rest of this skill (brand, narration, SFX, craft.md, QC, re
 - **Beat edit (Flow C)** → write the shot list for this idea (one line per hit: time · visual · words), copy
   `templates/beat-edit.html` + `beats.js` + the song + images into `<root>/source/`, set CFG and SHOTS_SRC, test stills
   with `render.py --test`, then `render_final.sh beat-edit.html song.wav …`. Follow beat-edit.md §7 before showing it.
+- **Pick the world from the medium** (max-quality.md §2b): a physical process → an illustrated world with one path
+  (craft.md §8b); software, platforms, algorithms, anything lived on a screen → the product-UI world (craft.md §8d,
+  `templates/ui-kit.js`): real app screens on phones, panels in the platform's own style, real prints with the marker,
+  the math on screen. Two illustrated worlds were rejected for an algorithm topic before this rule existed.
 - **Before animating**: source real photos/3D (craft.md §8) and do a design pass — style frames per beat, rendered
   with `render.py --test`, critiqued for hook, density and fit (§5c). With agents: have each one stop after its style
   frames and report; review the sheets yourself, send notes, then let it animate.

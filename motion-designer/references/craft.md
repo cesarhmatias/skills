@@ -36,6 +36,22 @@ The goal of a short is that people watch to the end. Pick the hook in the intake
 - **Re-hook every 6–10 s**: a question ("So what's inside?"), a reveal, a scale jump, a local angle ("and your country is
   on this map"), a myth vs fact ("everyone blames X — the real culprit is Y").
 - **The CTA is part of the story's end**, said by the narrator and shown on a designed end card (Q9).
+- **Hook lines that held a 90 s explainer to the end** (the algorithm reel, PT-BR, approved 2026-10-28; the user had
+  rejected "fica até o final"-style teases and a recorded sign-off as weak):
+  · *Open loop that names a concrete extra item in the first narrated sentence*: "E eu vou colocar o TikTok no meio,
+    porque ele ignora uma coisa que todo mundo acha que importa." The item gets its own act later; the loop stays open
+    for 60 s.
+  · *Aside in the on-camera hook*: the recorded hook names three things; the fourth appears handwritten over the
+    footage ("+ o TikTok?") — curiosity without re-recording, and it tells the viewer the video goes beyond the title.
+  · *Relatable setup* right after: "Pensa que você postou o mesmo vídeo nas quatro redes."
+  · *Mid-video follow CTA* after ≥ 60 % of the value and immediately followed by a reason to stay: "E se você tá
+    aprendendo alguma coisa, me segue no greco dev pra não perder os próximos. Porque agora vem o TikTok." On screen:
+    the real profile card, a hand presses "Seguir" → "Seguindo ✓". The user: "o negócio de seguir tá num momento bom".
+  · *The closing line turns the viewer's own behaviour into the proof of the last point*: "E no TikTok, prende até o
+    último segundo. Que nem você fez agora." — with the reel's own progress bar completing on "agora" and a
+    "visto até o fim" chip. No end card, no recorded sign-off after it.
+  · *A connector opens every sentence* (Mas, Só que, Por isso, Então, Já no X…) and each act ends by opening the next
+    ("Porque agora vem o TikTok").
 
 ## 2. Readability (the #1 rejection reason)
 - **One main read path per screen.** If the eye has to choose between a prop, a screen, a background and a caption, it's wrong.
@@ -76,6 +92,21 @@ excess glow, restrained colour, precise type. Template helpers (all pure functio
   and the UI reacts on the press frame (highlight, ring, state change), with a tick SFX on the same MARK.
 - **Sound is part of the timeline** — attach clicks, chart completions, camera moves and logo reveals to MARKs, or to
   beats from `beat_map.py` when there is a track. Review the sound as carefully as the picture.
+
+## 3c. Timing table of the approved product-UI reel (calm pacing, 60 fps)
+| what | timing |
+|---|---|
+| card / panel / phone entrance | 0.55 s, 36–60 px rise, scale .94→1, slight overshoot (`E.oB(t,1.2)`) |
+| exit | 0.30 s, −18 px, no overshoot; finished before the next entry in the same band |
+| headline | fade + 18 px rise per word, 0.5 s, 0.05 s stagger; `tout` ≤ next `tin` − 0.55 s |
+| section change | 0.45 s crossfade + 60 px slide; the stepper pill opens its label in 0.45 s |
+| dim + blur behind a print | 0.35–0.40 s, together with the print; blur 14 px, 40 % tint |
+| real print | enters at 860 px wide; the marker sweeps `scaleX 0→1` in 0.4 s on the spoken word |
+| counters | 0.5–0.8 s per step, `E.o3`, tabular figures, a 1.08 pulse on each landing |
+| bars / progress | 0.85 s `E.o3`; a bar that must land on a word uses `kv()` with `E.io3` to that word |
+| toggles, segmented control, strike-through | 0.3–0.5 s `E.io3` |
+| cursor / hand | `springKeys` f 1.6 z .7; press = 0.14 s scale .90, ring 0.7 s |
+| caption words | pop 0.18 s; a chunk's last word stays ≥ 0.3 s; the next chunk may wait ≤ 0.18 s for it |
 
 ## 4. Brand fidelity
 - Use the product's **real UI, colors, fonts and components** — pull them from the live site/code, never approximate.
@@ -177,6 +208,10 @@ only the transcript catches it. Check pauses > 0.35 s inside sentences in the wo
   starts — it never lingers over the next shot.
 - Preload every font weight before `window.ready` — a weight first used mid-video loads late and re-flows the text.
 - Caption plate = soft rounded backing behind the words only, never a full-width dark bar.
+- Series style that replaced the plate (Gabriel's reels): white Inter 900, 7 px black stroke (`-webkit-text-stroke` +
+  `paint-order: stroke fill`), soft shadow, no box, no colour change on the newest word. Chunks of up to 6 words /
+  30 chars; the last word of a chunk never shows < 0.3 s (the next chunk waits ≤ 0.18 s) — `qc_captions.py` must
+  report no SHORT HOLD; a few LATE ≤ 0.18 s are the accepted price.
 
 **edge-tts (free fallback)**
 - **edge-tts**, American Multilingual neural voice, **rate +8%**, **no pitch shift**, **dry (no reverb/echo)**, silences trimmed,
@@ -269,6 +304,19 @@ Reference the user liked (a dev creator's Reels): the hook's captions are NOT a 
   show what that business really sees (an orders chart drawing itself, the month's report landing, a forecast line)
   — never tiles labelled with the spoken words.
 
+- **Measure the head first.** Draw a 100 px grid over a real hook frame (`PIL`) and keep every collage row above the
+  hairline; move rows, not the footage. The pull object (a phone, a folder) rises over the chest at ~60 % size and
+  travels to its place in scene 1 while the footage fades — a match cut, not a wipe. An aside that the voice never
+  says ("+ o TikTok?") goes under the "vem comigo" block, in the free band between the collage and the head.
+
+## 8d. Product-UI world — the approved pattern for software / platform / algorithm topics (2026-10-28)
+Two illustrated worlds (a bench of instruments, a factory with a conveyor) were rejected from stills for the same
+topic; the product-UI world was approved from the render. Full method and checklist: max-quality.md §2b. In short:
+real phones with the real app screens, one hero panel per act in that platform's own design language, real prints
+with the marker on the spoken phrase, the math on screen, a studio background per brand, one travelling subject and one
+recurring device. Components in `templates/ui-kit.js` (phone, studio, stepper, print card, report card, outlined
+captions, `pop/vo/kv/hlB`).
+
 ## 9. Review process
 - People judge **animation, not stills or written plans**: never ask for approval on keyframes or a storyboard doc.
   Check stills yourself (contact sheets), then show a rendered video (a 30 fps half-res draft is fine for direction).
@@ -292,3 +340,9 @@ Reference the user liked (a dev creator's Reels): the hook's captions are NOT a 
 - The polished result is rarely the first one (a widely shared one-prompt-looking film took 163 model calls and hours).
   Budget iterations; don't oversell a first render.
 - Keep a running log (README.md in the output root): # / title / final path / status / why earlier versions were rejected.
+- **Order that worked for the algorithm reel** (and three restarts of the final render were still needed): scene sheet
+  → user gate → animate → `render.py --sweep 10` until `layout: OK` (copy render.py without its 60-line cap and group
+  the messages by text to see every problem) → `qc_captions.py` until no SHORT HOLD → 30 fps half-res draft → stills at
+  every MARK (−0.12 / +0.3 / +0.9 s) read as contact sheets → `render_final.sh` → `qc_video.py` (its AUDIO OFFSET
+  assumes the take starts at 0 s; with an on-camera hook cross-correlate from `OFF` yourself) → read all 4 fps sheets →
+  `review_frames.py --mp4` → fill the report. Anything found in a sheet is fixed before the user sees the file.
