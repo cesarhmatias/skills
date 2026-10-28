@@ -5,10 +5,11 @@
   python3 render.py timeline.html --ar 1x1 --fps 240 --range 12.0,14.5   # re-render a slice only
   python3 render.py timeline.html --ar 16x9 --fps 30 --scale .5     # quick low-res animated draft
   python3 render.py timeline.html --ar 9x16 --sweep 10              # layout check only, whole timeline at 10 fps
+  python3 render.py timeline.html --ar 9x16 --params 'hook=B&cta=A' --test 1,2   # a campaign variant
 
 Layout checks (in --test and --sweep): every visible text must sit inside the platform safe box, must not overlap
 another text block, must not sit on top of a [data-role=focal] element (image/3D/chart the viewer must SEE), and focal
-elements must not be cut by the frame edge. Opt-outs: [data-bleed] (backgrounds/textures), [data-over] (text that is
+elements must not be cut by the frame edge, and no text may be cut by its own overflow-hidden box. Opt-outs: [data-bleed] (backgrounds/textures), [data-over] (text that is
 deliberately on a scrim over a full-bleed photo), [data-nocheck]. Text blocks = nearest .hl / [data-block] /
 [data-role=caption] ancestor (words of one headline don't count as overlapping each other).
 3D: expose window.FOCAL_BOXES = () => [{x,y,w,h,name}] with the projected screen boxes of hero objects.
@@ -44,12 +45,17 @@ CHECK_JS = r"""(() => { const B = window.SAFE_BOX, FW = innerWidth, FH = innerHe
   for (const f of (window.FOCAL_BOXES ? window.FOCAL_BOXES() : [])) F.push({q: {left: f.x, top: f.y, right: f.x + f.w, bottom: f.y + f.h}, name: f.name || '3d'});
   for (const f of F) { if (!f.bleed && (f.q.left < -2 || f.q.top < -2 || f.q.right > FW + 2 || f.q.bottom > FH + 2)) out.push(`CUT OFF BY FRAME  [${f.name}]`);
     for (const a of T) if (!a.over && hit(a.q, f.q, 6)) out.push(`TEXT OVER IMAGE  "${a.txt}" on [${f.name}]`); }
+  // text cut by its own box (overflow hidden/clip): the frame-edge check can't see it
+  for (const el of document.querySelectorAll('#stage *')) { if (el.closest('#guides,[data-nocheck],[data-bleed]') || !vis(el) || !el.innerText || !el.innerText.trim()) continue;
+    const cs = getComputedStyle(el); if (!/hidden|clip/.test(cs.overflow + cs.overflowX + cs.overflowY) || el.matches('.hl .w,.hl .ln')) continue;
+    if (el.scrollHeight > el.clientHeight + 3 || el.scrollWidth > el.clientWidth + 3) out.push(`TEXT CLIPPED BY ITS BOX  "${el.innerText.trim().replace(/\s+/g, " ").slice(0, 40)}"`); }
   return [...new Set(out)]; })()"""
 unsafe = []
 ap.add_argument('--scale', type=float, default=1.0, help='device scale factor (0.5 = half-res draft)')
+ap.add_argument('--params', default=os.environ.get('TL_PARAMS', ''), help='extra query string for campaign variants, e.g. "hook=B&cta=A" (or env TL_PARAMS)')
 a = ap.parse_args()
 W, H = SIZES[a.ar] if a.ar in SIZES else map(int, a.ar.lower().split('x'))
-URL = 'file://' + os.path.abspath(a.html) + f'?ar={a.ar}'
+URL = 'file://' + os.path.abspath(a.html) + f'?ar={a.ar}' + (f'&{a.params}' if a.params else '')
 
 
 async def worker(b, jobs, out, errs):

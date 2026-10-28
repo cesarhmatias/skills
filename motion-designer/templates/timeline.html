@@ -46,6 +46,22 @@ const E={o2:t=>1-(1-t)*(1-t),o3:t=>1-Math.pow(1-t,3),o5:t=>1-Math.pow(1-t,5),i2:
   oB:(t,s=1.9)=>1+(s+1)*Math.pow(t-1,3)+s*Math.pow(t-1,2)};
 const spr=(t,f=2.4,z=.42)=>{if(t<=0)return 0;const w=2*Math.PI*f,wd=w*Math.sqrt(1-z*z);return 1-Math.exp(-z*w*t)*(Math.cos(wd*t)+z*w/wd*Math.sin(wd*t));};
 const hash=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);};   // deterministic "random"
+// closed-form spring over SEVERAL target changes, evaluable at any t (no frame-by-frame simulation):
+//   value(t) = v0 + Σ Δv_i · spr(t − t_i)        keys = [[t0,v0],[t1,v1],…]
+const springKeys=(t,keys,f=2.4,z=.42)=>{let v=keys[0][1];for(let i=1;i<keys.length;i++)v+=(keys[i][1]-keys[i-1][1])*spr(t-keys[i][0],f,z);return v;};
+// a moving indicator/selection animated by its two EDGES: the edge heading toward the target leads (quicker spring),
+// the other trails → it stretches briefly and settles. keys = [[t,left,right],…] → {l,r}
+function edgeSpring(t,keys,lead={f:3.4,z:.62},trail={f:2.1,z:.7}){let l=keys[0][1],r=keys[0][2];
+  for(let i=1;i<keys.length;i++){const dl=keys[i][1]-keys[i-1][1],dr=keys[i][2]-keys[i-1][2],right=dl+dr>0,a=right?trail:lead,b=right?lead:trail;
+    l+=dl*spr(t-keys[i][0],a.f,a.z);r+=dr*spr(t-keys[i][0],b.f,b.z);}return {l,r};}
+// container first, text after: at tc the container starts moving; the old label is gone BEFORE tc, the new label
+// only arrives once there is room (tc+lag) → no two labels ever overlap inside a morphing box. → {a, b} opacities
+const swap=(t,tc,lag=.22,out=.12,inn=.25)=>({a:1-E.i2(seg(t,tc-out,tc)),b:E.o3(seg(t,tc+lag,tc+lag+inn))});
+// ---- CAMPAIGN DATA (optional) — content lives in campaign.json, never in the scenes. validate_campaign.py checks it
+// and writes campaign.js (window.CAMPAIGN); include it with a script tag (src="campaign.js") placed above this script.
+// Variants come from the URL: ?hook=A&cta=B (render.py --params "hook=A&cta=B"). Scenes read C.hook / C.cta / C.copy.
+const C=(()=>{const c=window.CAMPAIGN;if(!c)return null;const pick=(arr,id)=>(arr||[]).find(x=>x.id===id)||(arr||[])[0];
+  return {...c, hook:pick(c.hooks,Q.get('hook')), cta:pick(c.ctas,Q.get('cta'))};})();
 // readability: minimum on-screen hold for a text = words/3 + 1 s
 const hold=txt=>txt.trim().split(/\s+/).length/3+1;
 function div(p,cls,css,html){const d=document.createElement('div');if(cls)d.className=cls;if(css)d.style.cssText=css;if(html!=null)d.innerHTML=html;p.appendChild(d);return d;}

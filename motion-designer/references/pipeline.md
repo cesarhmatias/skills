@@ -79,6 +79,10 @@ load before `window.ready=true`. One WebGL canvas for all 3D scenes; switch scen
     (audio offset · Whisper transcript diff · pauses · black/white/frozen frames · loudness · 4 fps sheets in `qc_out/sheets/`)
     `python3 $S/qc_captions.py source/timeline.html --ar 9x16` (caption position stable at 60 fps · hold · on-time)
     Read every sheet; fix → patch-render → re-run until clean.
+11b. **Review report**: `python3 $S/review_frames.py source/timeline.html --ar 9x16 --mp4 <file> --out review/9x16` →
+    storyboard / transitions (each MARK −0.12/+0.06/+0.30 s) / phone-size / encoded contact sheets + `review_report.md`.
+11c. **Campaign matrix** (campaign.md): `python3 $S/validate_campaign.py source/campaign.json` →
+    `python3 $S/render_campaign.py source/timeline.html --campaign source/campaign.json --out final --audio source/sound.wav [--draft]`.
 12. **Reveal**: `open -R <file>` for each deliverable (or `open <folder>`).
 
 ## Machine etiquette

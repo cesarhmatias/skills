@@ -17,4 +17,8 @@ python3 -c "import mlx_whisper" 2>/dev/null || echo "optional: pip3 install mlx-
 python3 -c "import rembg" 2>/dev/null || echo "optional: pip3 install rembg   (cut objects out of real photos)"
 [ -f ~/.config/elevenlabs/api_key ] || [ -n "$ELEVENLABS_API_KEY" ] || echo "optional: ElevenLabs key not set (free edge-tts will be used unless the user provides one)"
 command -v potrace >/dev/null || echo "optional: brew install potrace   (vectorize_logo.sh, crisp logos for beat edits)"
+# other engines (Q1b) — only needed when the user picks them
+node -e 'process.exit(+process.versions.node.split(".")[0]>=22?0:1)' 2>/dev/null || echo "optional: Node >= 22 (HyperFrames / Remotion engines) -> brew install node"
+[ -f ~/.claude/skills/hyperframes/SKILL.md ] || echo "optional: HyperFrames skills -> npx -y hyperframes@latest skills update"
+[ -f ~/.claude/skills/remotion-best-practices/SKILL.md ] || echo "optional: Remotion skills -> npx -y skills add remotion-dev/skills -g -a claude-code -s remotion-best-practices -y"
 [ $miss = 0 ] && echo "toolchain OK" || exit 1

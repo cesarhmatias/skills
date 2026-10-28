@@ -22,8 +22,9 @@ frame-perfect from code (no After Effects), then checked frame by frame before y
 ## What's inside
 | path | what |
 |---|---|
-| `SKILL.md` | the workflow and the full intake (language → type → look → idea → versions/sound/narration/platform → duration/visuals/CTA/engine → voice/captions → hook/retention/pacing/QC) |
+| `SKILL.md` | the workflow and the full intake (language → type → look → idea → versions/sound/narration/platform → duration/visuals/CTA/engine → voice/captions → quality level (Maximum / High / Quick draft) → hook/retention/pacing) |
 | `references/craft.md` | the quality bar — every rule came from a rejected draft |
+| `references/max-quality.md` | the "Maximum" level: the method behind the best video so far (invent the world, style-frame gate, designed props, self-review loop) |
 | `references/pipeline.md` | step-by-step production commands |
 | `references/brainstorm.md` | formats for products and for story/curiosity content |
 | `templates/beat-edit.html` + `references/beat-edit.md` | beat edits: music-driven hype edits (cuts on every bass hit, drop, giant word slams, strobe, grain) — `beat_map.py`, `slowed_reverb.py`, `vectorize_logo.sh` |
@@ -34,6 +35,9 @@ frame-perfect from code (no After Effects), then checked frame by frame before y
 | `scripts/el_voices.py` · `el_tts.py` · `vo.py` | voice previews (free) · one-take ElevenLabs narration with word timings · edge-tts |
 | `scripts/render.py` · `render_final.sh` · `render_all.sh` · `encode.sh` | frame capture + layout checks · low-impact final render · all formats |
 | `scripts/qc_video.py` · `qc_captions.py` | final QC: audio offset, transcript vs script, pauses, frames, loudness, caption stability |
+| `references/campaign.md` · `scripts/validate_campaign.py` · `render_campaign.py` | campaign mode (optional, asked in the intake): brief as data, validated (assets, fonts, lengths, sourced claims), hooks × formats × CTAs from one timeline with cached segments, posters, manifest |
+| `references/engines.md` | other engines the agent picks per video: HyperFrames (HTML + GSAP, registry blocks) and Remotion (React) — setup, intake mapping, gotchas; uses their official skills |
+| `scripts/review_frames.py` | 5-pass review (QC "Extreme", quality Maximum/High): storyboard, transitions, phone-size, encoded contact sheet + review report |
 
 Renders are CPU/GPU heavy (240 fps capture → 60 fps with motion blur): the scripts run niced, 3 workers, in slices,
 and delete frames as they go (~2 GB peak). Asset licences: credit every CC BY / BY-SA file in the post caption.

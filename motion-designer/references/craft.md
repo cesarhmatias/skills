@@ -60,6 +60,23 @@ The goal of a short is that people watch to the end. Pick the hook in the intake
   · *Dynamic*: snappier entrances (0.3–0.4 s), whips on beats, faster counters — memes, showreels, music-driven cuts.
   Test either way: if your eye has to chase a move, it's too fast.
 
+## 3b. Make the motion look expensive (timing, not effects)
+Most cheap-looking animation fails on timing and composition, not on a lack of effects. No generic AI gradients, no
+excess glow, restrained colour, precise type. Template helpers (all pure functions of `t`):
+- **Closed-form springs** — `spr(t)` is analytic, so any frame renders without simulating the ones before it. A value
+  that changes target several times: `springKeys(t, [[t0,v0],[t1,v1],…])` = v0 + Σ Δv·spr(t − tᵢ). Never integrate a
+  spring frame by frame (breaks `seek(t)` and slice renders). Keep springs restrained (z ≥ .55 for UI, little overshoot).
+- **Animate edges, not rectangles** — a tab indicator/selection moves its leading edge first and its trailing edge a
+  beat later (`edgeSpring(t, [[t,left,right],…])`): it stretches briefly and settles. Far more intentional than a
+  rigid box sliding at constant speed.
+- **Container first, text after** — when a button grows into a card, the box starts moving at tc; the old label is
+  gone before tc and the new one arrives only once there's room (`swap(t, tc)` → {a, b} opacities). Overlapping labels
+  inside a morphing box is the #1 tell of an unfinished AI UI animation.
+- **Cursor on real UI** — the cursor travels on a spring (`springKeys` for x and y), presses (scale .96 → 1, ~0.12 s),
+  and the UI reacts on the press frame (highlight, ring, state change), with a tick SFX on the same MARK.
+- **Sound is part of the timeline** — attach clicks, chart completions, camera moves and logo reveals to MARKs, or to
+  beats from `beat_map.py` when there is a track. Review the sound as carefully as the picture.
+
 ## 4. Brand fidelity
 - Use the product's **real UI, colors, fonts and components** — pull them from the live site/code, never approximate.
 - When parodying another medium (terminal, movie trailer, game HUD, chat), **re-skin it in the brand system**
@@ -142,8 +159,10 @@ Never use library voices that imitate real celebrities without authorization.
 
 **One continuous take** (best continuity): generate the WHOLE script in ONE ElevenLabs request (v3 ≤ 5,000 chars;
 paragraph breaks = act breaks) instead of one request per act — separate requests change energy/pitch at every join.
-Split it into cues with the alignment afterwards. If one line comes out wrong (a misread that changes the meaning, a
-doubled syllable on a keyword), regenerate only that line and splice it **at a scene cut**, loudness-matched.
+Split it into cues with the alignment afterwards. **Never edit the take**: no re-spacing the pauses, no splicing a line
+from another take, no `atempo` speed-up — all three were done once and rejected ("a fala tá bugada", "a entonação de
+uma frase não conecta com a próxima"). Only trim the head/tail. A wrong line or a script change (even one word) =
+regenerate the WHOLE script in one request (~1,300 credits for 80 s).
 Typical cost: ~1 credit per character (an 80 s script ≈ 1,300 credits) — test the hook line first (~150 credits).
 **Always transcribe the result** (`qc_video.py`, Whisper) and diff it against the script before building the picture:
 a take can misread a sentence so its meaning flips (a misplaced comma, a word read as a different word) — often
@@ -195,13 +214,81 @@ Flat SVG icons floating in an empty frame were rejected as "AI-looking, badly ma
 - **Render politely**: `nice -n 15`, `--workers 3`, render in slices and delete frames right after encoding — three
   parallel full renders pegged the user's Mac at 100 % CPU and filled the disk.
 
+## 8b. Illustrated-world explainer — the approved pattern (data-pipeline reel, 2026-10-27)
+v1 (UI boxes on an empty beige frame) was rejected as "motion ridículo"; v2/v3 built like this were approved
+("gostei bastante desse padrão de animação"), and v8 became the quality bar (max-quality.md). Use the principles for
+any process / system / "how X works" explainer. The pipe, the stacked stations, the dashed map and the measurements
+below are how THAT reel did it: invent the world, the path and the camera grammar for each new topic (max-quality.md §2).
+- **One world, one path.** Stack full-bleed illustrated stations (1080×1920 each, flat vector with
+  gradients and soft shadows), one per step, all joined by ONE physical path (a pipe, a road, a cable). The camera
+  rides that path down between stations (eased 0.75 s moves) — no hard cuts inside the narration. Each station has its
+  own background colour; a ground/soil strip between stations; decor (bushes, crates, furniture) fills the bleed zone
+  below the captions so no frame has an empty bottom third.
+- **Bands in every station (9×16):** stepper pill y≈300 · headline 2 lines at `SB.x`, y≈372, 84–92 px · hero visual
+  600–1250 · captions 1270–1460 · decor below. Nothing readable left of `SB.x` (=150).
+- **One object travels the whole video.** The same records/item change state at every station (raw → stored → cleaned →
+  summarised → shown on the final screen); the numbers on the last screen match the ones built earlier.
+- **Open on a concrete user action that creates the thing** — e.g. a food-delivery screen, a finger moving to
+  "Fazer pedido", tap → "Pedido #82 ✓", and the order rides the path from top to bottom. "Pedir corrida" on a map was
+  not clear enough: show the item, the price and the button.
+- **A map of the same stations comes back** (vignettes = clones of the station SVGs + big numbered labels, inside a
+  dashed frame with the umbrella step on a tab): when the parts are listed, when the process runs (night: vignettes
+  dark, light up in order, the failing one turns red), and as the close (day, all ✓, the creator's photo on top).
+  Leave ≥ 40 px between the tab and the first vignette; the tool's name gets its OWN chip, never stuffed into
+  the tab. Vignette SVGs need their own def ids (`id="v<k>…"` + `url(#v<k>…)`): gradients referenced from a hidden scene
+  don't render.
+- **Every element pops on its spoken word.** Real prints enter big (≈940 px wide), one at a time, with the marker on the
+  exact phrase, then leave or fly into the scene (the storage-price print shrinks into the lake's price sign).
+- **Never stack cards over a busy scene.** When a print/alert must sit over the map, dim everything behind it (≈80 %
+  dark overlay) and show only that card (+ one alert chip). "Soltou um monte de dado em cima do mesmo bagulho" = rejected.
+- **Process diagrams = named step boxes**: big icon + verb ("Extrair", "Transformar", "Carregar"), arrows between, the item
+  rides INSIDE the box it is in and that box lights up (border + slight scale); where a step happens is shown by a dashed
+  frame labelled with the system ("data warehouse" around L in ETL, around L+T in ELT). Rejected: tiny icon clusters,
+  data cards floating outside/above the boxes.
+- **The final screen is a real-looking product UI**: top bar with name + time, KPI tiles that count up, a styled chart,
+  a status list (e.g. the night's pipeline run with ✓ per step) — not a bare bar chart.
+- **Detail check on props**: clip suns/views to their window, props stand ON a surface (mug, plant on the desk top), no
+  element overlapping a frame/bezel by accident.
+- **Engineering:** hide world HTML elements that are off-screen each frame (and restore them at the start of the next
+  seek) — otherwise the layout sweep reports thousands of false "outside safe zone" errors.
+- **Talking-head outro trims**: cut at a word onset found with RMS (20 ms windows) and confirm with Whisper on a 1.5 s
+  test clip; re-link the JPEG frames from that frame on and shift the word timings.
+
+## 8c. Talking-head hook: editorial caption collage + a "pull" into the video (approved direction, 2026-10-27)
+Reference the user liked (a dev creator's Reels): the hook's captions are NOT a running subtitle band.
+- Curated: show some words, sometimes wait for the phrase to finish; every word shown pops on its spoken time and a
+  block stays while the phrase lasts. Place the block in a free area (above the head when the face is mid-frame).
+- Mixed type inside one block: bold sans for the setup ("você sabe como funciona"), italic serif for the middle
+  (Instrument Serif), ONE giant condensed keyword in yellow (Anton, "PIPELINE"), handwriting with a drawn arrow
+  (Caveat), and editor gimmicks: a selection box with handles that a cursor drags over the words being said, a typing
+  caret. Soft shadow, no boxes.
+- End the hook with a pull into the motion: an object related to the topic appears (a folder named after the video),
+  a cursor double-clicks it, and it opens as a window that grows to full frame with the motion inside — the narration
+  starts inside that window. Other pulls that fit: an arm pulling something into frame, a file being dragged.
+- The motion must not repeat the voice literally: when the narration says "um gráfico, um relatório ou um modelo",
+  show what that business really sees (an orders chart drawing itself, the month's report landing, a forecast line)
+  — never tiles labelled with the spoken words.
+
 ## 9. Review process
 - People judge **animation, not stills or written plans**: never ask for approval on keyframes or a storyboard doc.
   Check stills yourself (contact sheets), then show a rendered video (a 30 fps half-res draft is fine for direction).
 - For several versions, use **independent agents per version** (different story angles) to avoid idea bias.
 - After rendering, **reveal the files in Finder** (`open -R` each file, or `open` the folder) and ask which one is best.
-- **QC loop before showing anything** (Q16 "Extreme" = all of it, every render):
+- **Exception, quality "Maximum" only**: the style-frame sheet goes to the user once, with one question about the
+  direction, before animating (max-quality.md §4). A direction change after animating costs hours.
+- **QC loop before showing anything** (QC "Extreme", from quality Maximum or High = all of it, every render):
   `qc_video.py` (audio offset, Whisper transcript vs script, pauses, black/white/frozen frames, loudness, 4 fps sheets) +
   `qc_captions.py` (caption position stable at 60 fps, hold, on-time) + `render.py --sweep 10` (layout). Then READ every
   contact sheet yourself. Timing checks alone missed a caption that jumped sideways — check positions, not just times.
+- **QC "Extreme": five passes, in order** (`scripts/review_frames.py` builds the sheets + `review_report.md`):
+  1 *storyboard* — 12 frames over the whole timeline: one coherent story? · 2 *timing* — every MARK at −0.12 / +0.06 /
+  +0.30 s: overlapping text, jumps, things vanishing mid-move (a contact sheet at regular intervals misses what breaks
+  BETWEEN its frames) · 3 *phone size* — the frames at ~390 px wide, as people watch: still readable? · 4 *brand + facts*
+  — logo, font, colours, real screenshots, every number from an approved claim · 5 *encoded file + audio* — 1 fps
+  contact sheet of the MP4, ffprobe size/fps/duration, SFX sync, loudness.
+- **A review report, not a verdict.** Never say "the animation looks great" without having opened the rendered frames.
+  The report lists the timestamps inspected, issues found, fixes applied, remaining concerns — and a human approval
+  box that must be ticked before anything is delivered. Model visual review is good, not perfect.
+- The polished result is rarely the first one (a widely shared one-prompt-looking film took 163 model calls and hours).
+  Budget iterations; don't oversell a first render.
 - Keep a running log (README.md in the output root): # / title / final path / status / why earlier versions were rejected.

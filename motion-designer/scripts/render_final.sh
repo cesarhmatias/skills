@@ -2,6 +2,7 @@
 # render_final.sh TIMELINE.html AUDIO.wav OUT.mp4 [AR=9x16] [SLICE_S=15]
 # Machine-friendly final render: nice -n 15, 3 workers, rendered in slices; each slice is encoded (240 fps → 4-frame
 # tmix motion blur → 60 fps) and its JPEG frames deleted immediately, so disk peaks at ~2 GB instead of ~7 GB.
+# Campaign variant: TL_PARAMS='hook=B&cta=A' render_final.sh … (passed to every page).
 # Then: concat, mux audio with loudnorm (−14.5 LUFS, TP −1), and an _upload.mp4 (CRF 22, ~50 MB/80 s) for posting.
 set -e
 HERE=$(cd "$(dirname "$0")" && pwd); HTML=$1; WAV=$2; OUT=$3; AR=${4:-9x16}; SL=${5:-15}; FPS=240
@@ -12,7 +13,7 @@ from playwright.async_api import async_playwright
 async def m():
     async with async_playwright() as p:
         b = await p.chromium.launch(args=['--allow-file-access-from-files', '--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'])
-        pg = await b.new_page(); await pg.goto('file://' + os.path.abspath(sys.argv[1]) + '?ar=' + sys.argv[2])
+        pg = await b.new_page(); await pg.goto('file://' + os.path.abspath(sys.argv[1]) + '?ar=' + sys.argv[2] + ('&' + os.environ['TL_PARAMS'] if os.environ.get('TL_PARAMS') else ''))
         await pg.wait_for_function('window.ready===true', timeout=300000); print(await pg.evaluate('window.DUR')); await b.close()
 asyncio.run(m())
 PY
