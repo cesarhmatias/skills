@@ -99,8 +99,13 @@ class NaturalProtocolTests(unittest.TestCase):
         reference = make_entry(plate="ABC1234")
         replica = make_entry(plate="XYZ9Z99")
         replica["request"]["postData"]["params"][0]["value"] = "CASA_123456"
-        result = compare_entries(reference, replica)
+        result = compare_entries(reference, replica, dynamic_properties={"v_placa"})
         self.assertTrue(result["ok"], result)
+
+    def test_compare_rejects_undeclared_business_input_difference(self):
+        result = compare_entries(make_entry(plate="ABC1234"), make_entry(plate="XYZ9Z99"))
+        self.assertFalse(result["ok"])
+        self.assertIn("XML.properties.v_placa", {item["path"] for item in result["mismatches"]})
 
     def test_discovery_and_compare_survive_shifted_har_indices(self):
         static = {
@@ -121,6 +126,7 @@ class NaturalProtocolTests(unittest.TestCase):
         result = compare_entries(
             reference[reference_matches[0]["entry"]],
             replica[replica_matches[0]["entry"]],
+            dynamic_properties={"v_placa"},
         )
         self.assertTrue(result["ok"], result)
 

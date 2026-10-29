@@ -102,9 +102,9 @@ Never copy these values from an old HAR into a new run:
 
 Do not set `Cookie`, `Host`, or `Content-Length` manually. Let the HTTP client calculate or select them. Keep headers appropriate to each resource type instead of applying one captured header list to every request.
 
-## Pattern — stateful client skeleton
+## Reference skeleton — vehicle-yard client
 
-The helpers `serialize_event`, `parse_connector`, and `interpret_result` are target-specific. The important reusable contract is the order in which live state is read, updated, and validated.
+The entire skeleton below, including paths, events, properties, statuses, and the helpers `serialize_event`, `parse_connector`, and `interpret_result`, belongs to this reference case. The reusable contract is only the order in which live state is read, updated, and validated; rediscover all business names for each deployment.
 
 ```python
 import re

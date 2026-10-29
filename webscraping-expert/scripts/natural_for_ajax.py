@@ -16,7 +16,7 @@ JS_ENCODE_SAFE = "-_.!~*'()"
 PART_WIDTHS = (2, 2, 2, 2, 2, 3, 5, 1)
 PART_NAMES = ("sid", "pid", "unused", "model", "dummy", "page", "event", "flag")
 DYNAMIC_PARTS = {"sid", "pid"}
-DYNAMIC_PROPERTIES = {"pageInitParam", "v_placa"}
+PROTOCOL_DYNAMIC_PROPERTIES = {"pageInitParam"}
 DYNAMIC_HEADERS = {"cookie", "content-length"}
 DYNAMIC_FORM_FIELDS = {"SESSIONID", "PAGEINITPARAM"}
 SENSITIVE_OUTPUT_MARKERS = (
@@ -254,7 +254,13 @@ def _cookie_names(entry: dict) -> list[str]:
     return []
 
 
-def compare_entries(reference: dict, replica: dict) -> dict:
+def compare_entries(
+    reference: dict,
+    replica: dict,
+    *,
+    dynamic_properties: set[str] | None = None,
+) -> dict:
+    allowed_dynamic_properties = PROTOCOL_DYNAMIC_PROPERTIES | (dynamic_properties or set())
     mismatches = []
 
     def mismatch(path: str, expected, actual):
@@ -317,7 +323,7 @@ def compare_entries(reference: dict, replica: dict) -> dict:
         if ref_property_order != rep_property_order:
             mismatch("XML.properties.order", ref_property_order, rep_property_order)
         for (ref_name, ref_value), (rep_name, rep_value) in zip(ref.properties, rep.properties):
-            if ref_name == rep_name and ref_name not in DYNAMIC_PROPERTIES and ref_value != rep_value:
+            if ref_name == rep_name and ref_name not in allowed_dynamic_properties and ref_value != rep_value:
                 mismatch(f"XML.properties.{ref_name}", ref_value, rep_value)
         if ref.kind == "i":
             ref_init = dict(ref.properties).get("pageInitParam")
@@ -344,13 +350,25 @@ def compare_entries(reference: dict, replica: dict) -> dict:
     }
 
 
-def compare(reference_path: str | Path, reference_index: int, replica_path: str | Path, replica_index: int) -> dict:
+def compare(
+    reference_path: str | Path,
+    reference_index: int,
+    replica_path: str | Path,
+    replica_index: int,
+    *,
+    dynamic_properties: set[str] | None = None,
+) -> dict:
     ref_entries, rep_entries = load_entries(reference_path), load_entries(replica_path)
-    result = compare_entries(ref_entries[reference_index], rep_entries[replica_index])
+    result = compare_entries(
+        ref_entries[reference_index],
+        rep_entries[replica_index],
+        dynamic_properties=dynamic_properties,
+    )
     result.update({
         "command": "compare",
         "reference_entry": reference_index,
         "replica_entry": replica_index,
+        "business_dynamic_properties": sorted(dynamic_properties or set()),
     })
     return result
 
@@ -371,6 +389,12 @@ def main(argv=None) -> int:
     compare_parser.add_argument("reference_entry", type=int)
     compare_parser.add_argument("replica_har")
     compare_parser.add_argument("replica_entry", type=int)
+    compare_parser.add_argument(
+        "--dynamic-property",
+        action="append",
+        default=[],
+        help="Business property allowed to differ after provenance review; repeat as needed",
+    )
 
     args = parser.parse_args(argv)
     try:
@@ -382,7 +406,13 @@ def main(argv=None) -> int:
             ref_entries, rep_entries = load_entries(args.reference_har), load_entries(args.replica_har)
             _entry_number(ref_entries, str(args.reference_entry))
             _entry_number(rep_entries, str(args.replica_entry))
-            result = compare(args.reference_har, args.reference_entry, args.replica_har, args.replica_entry)
+            result = compare(
+                args.reference_har,
+                args.reference_entry,
+                args.replica_har,
+                args.replica_entry,
+                dynamic_properties=set(args.dynamic_property),
+            )
     except (OSError, KeyError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         return 2

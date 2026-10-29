@@ -7,7 +7,7 @@
 | File | Use |
 |---|---|
 | `natural_for_ajax.py` | Discover Natural for Ajax POSTs by parsed content (`discover`), exactly reserialize their streams (`roundtrip`), or compare semantically paired reference and replica entries with explicit dynamic slots (`compare`). Standard library only; emits sanitized structural JSON. |
-| `test_natural_for_ajax.py` | Synthetic unit tests for UTF-16 lengths, `encodeURIComponent`, round-trips, header order, static mismatches, session provenance, and discovery after HAR indices shift. |
+| `test_natural_for_ajax.py` | Synthetic unit tests for UTF-16 lengths, `encodeURIComponent`, round-trips, header order, static mismatches, session provenance, shifted HAR indices, and mandatory declaration of dynamic business inputs. |
 
 Run the tests from the repository root:
 

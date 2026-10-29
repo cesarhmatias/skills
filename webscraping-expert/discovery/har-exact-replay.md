@@ -232,10 +232,11 @@ Run `discover` independently on the reference and replica, select the semantical
 ```bash
 python webscraping-expert/scripts/natural_for_ajax.py compare \
   private-reference.har "$REFERENCE_ENTRY" \
-  private-replica.har "$REPLICA_ENTRY"
+  private-replica.har "$REPLICA_ENTRY" \
+  --dynamic-property v_placa
 ```
 
-The comparator treats session IDs, process IDs, stamps, deltas, page-init parameters, cookies, content length, and the business plate as dynamic slots. It still checks their relationships and requires all other observable values to match. Review the JSON verdict; do not ignore a mismatch because the query returned data.
+Only protocol-state values such as session IDs, process IDs, stamps, deltas, page-init parameters, cookies, and content length are dynamic by default. Declare every business input explicitly with `--dynamic-property`, after proving its origin; repeat the option when needed. In this reference case, `v_placa` is dynamic because it is the user's query input, not because its name contains `placa`. The comparator reports declared business exceptions and requires all other observable values to match. Review the JSON verdict; do not ignore a mismatch because the query returned data.
 
 For full wire validation, supplement this HAR comparison with NetLog or wire evidence. HAR comparison alone cannot certify TLS or HTTP/2 framing.
 
