@@ -960,7 +960,7 @@ The skill is organized by problem domain. Each folder has a `README.md` describi
 |---|---|
 | Run the intake | `approach/README.md` (pick the flow matching the user's experience level) |
 | Find what to scrape on a new target | `discovery/README.md` |
-| Reproduce a stateful HAR request exactly | `discovery/har-exact-replay.md`, then `scripts/natural_for_ajax.py` for Natural protocol round-trips and diffs |
+| Reproduce a stateful HAR request exactly | `discovery/har-exact-replay.md`, then `scripts/natural_for_ajax.py` for content-based Natural request discovery, protocol round-trips, and semantic diffs |
 | Recognize a known site stack | `site-patterns/README.md` |
 | Set up a proxy or managed unblocker | `networking/proxy-zyte.md` (default), `networking/proxy-providers.md` |
 | Diagnose a block / identify the anti-bot vendor | `anti-bot/anti-bot-vendors.md`, `anti-bot/error-decoders.md` |

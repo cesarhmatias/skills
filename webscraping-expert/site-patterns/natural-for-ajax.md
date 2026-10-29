@@ -235,7 +235,7 @@ def encode_component(value: str) -> str:
     return quote(value, safe="-_.!~*'()")
 ```
 
-Use `../scripts/natural_for_ajax.py` to round-trip every captured request and compare a replica. Do not replace the original browser headers or percent encoding with a simpler working variant when exact fidelity is required.
+Use `../scripts/natural_for_ajax.py` to discover requests by parsed content, round-trip every captured stream, and compare semantically paired requests in a replica. Treat HAR entry numbers as capture-local addresses, not protocol parameters. Do not replace the original browser headers or percent encoding with a simpler working variant when exact fidelity is required.
 
 Observed response opcodes included:
 

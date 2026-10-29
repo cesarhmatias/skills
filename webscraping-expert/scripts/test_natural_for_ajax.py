@@ -6,6 +6,7 @@ import unittest
 from natural_for_ajax import (
     ProtocolError,
     compare_entries,
+    discover_requests,
     encode_component,
     js_length,
     parse_natural_stream,
@@ -99,6 +100,28 @@ class NaturalProtocolTests(unittest.TestCase):
         replica = make_entry(plate="XYZ9Z99")
         replica["request"]["postData"]["params"][0]["value"] = "CASA_123456"
         result = compare_entries(reference, replica)
+        self.assertTrue(result["ok"], result)
+
+    def test_discovery_and_compare_survive_shifted_har_indices(self):
+        static = {
+            "request": {
+                "method": "GET",
+                "url": "https://target.example.com/static/app.js",
+                "headers": [],
+            },
+        }
+        reference = [static, make_entry(plate="ABC1234")]
+        replica = [static] * 9 + [make_entry(plate="XYZ9Z99")]
+
+        reference_matches = discover_requests(reference, event="cmd_consultar_placa")
+        replica_matches = discover_requests(replica, event="cmd_consultar_placa")
+
+        self.assertEqual([item["entry"] for item in reference_matches], [1])
+        self.assertEqual([item["entry"] for item in replica_matches], [9])
+        result = compare_entries(
+            reference[reference_matches[0]["entry"]],
+            replica[replica_matches[0]["entry"]],
+        )
         self.assertTrue(result["ok"], result)
 
     def test_compare_rejects_static_header_change(self):

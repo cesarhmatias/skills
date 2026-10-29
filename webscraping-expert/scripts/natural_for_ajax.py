@@ -176,27 +176,56 @@ def _entry_number(entries: list[dict], raw: str) -> int:
     return index
 
 
-def roundtrip(path: str | Path) -> dict:
+def discover_requests(entries: list[dict], event: str | None = None) -> list[dict]:
+    """Find Natural POSTs by parsed content; HAR positions are report addresses only."""
     requests = []
-    for index, entry in enumerate(load_entries(path)):
+    for index, entry in enumerate(entries):
         fields = dict(form_pairs(entry))
         if "XML" not in fields:
             continue
         item = {"entry": index, "event": None, "ok": False}
         try:
             parsed = parse_natural_stream(fields["XML"])
-            rebuilt = serialize_natural_stream(
-                parsed.kind, parsed.parts, parsed.properties, parsed.delta,
-            )
             item.update({
+                "kind": parsed.kind,
                 "event": parsed.event,
                 "property_order": [name for name, _ in parsed.properties],
-                "ok": rebuilt == fields["XML"],
+                "ok": True,
             })
-            if not item["ok"]:
-                item["error"] = "Reserialized stream differs from reference"
         except (KeyError, ProtocolError, ValueError) as exc:
             item["error"] = str(exc)
+        if event is None or item["event"] == event:
+            requests.append(item)
+    return requests
+
+
+def discover(path: str | Path, event: str | None = None) -> dict:
+    requests = discover_requests(load_entries(path), event)
+    return {
+        "command": "discover",
+        "ok": bool(requests) and all(item["ok"] for item in requests),
+        "natural_post_count": len(requests),
+        "event_filter": event,
+        "requests": requests,
+    }
+
+
+def roundtrip(path: str | Path) -> dict:
+    entries = load_entries(path)
+    requests = []
+    for item in discover_requests(entries):
+        if not item["ok"]:
+            requests.append(item)
+            continue
+        entry = entries[item["entry"]]
+        fields = dict(form_pairs(entry))
+        parsed = parse_natural_stream(fields["XML"])
+        rebuilt = serialize_natural_stream(
+            parsed.kind, parsed.parts, parsed.properties, parsed.delta,
+        )
+        item["ok"] = rebuilt == fields["XML"]
+        if not item["ok"]:
+            item["error"] = "Reserialized stream differs from reference"
         requests.append(item)
     failed = [item for item in requests if not item["ok"]]
     return {
@@ -330,6 +359,10 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    discover_parser = subparsers.add_parser("discover", help="Find Natural POSTs by content, optionally filtering by event")
+    discover_parser.add_argument("har")
+    discover_parser.add_argument("--event", help="Return only requests with this parsed Natural event")
+
     roundtrip_parser = subparsers.add_parser("roundtrip", help="Parse and exactly reserialize every Natural POST in a HAR")
     roundtrip_parser.add_argument("har")
 
@@ -341,7 +374,9 @@ def main(argv=None) -> int:
 
     args = parser.parse_args(argv)
     try:
-        if args.command == "roundtrip":
+        if args.command == "discover":
+            result = discover(args.har, args.event)
+        elif args.command == "roundtrip":
             result = roundtrip(args.har)
         else:
             ref_entries, rep_entries = load_entries(args.reference_har), load_entries(args.replica_har)

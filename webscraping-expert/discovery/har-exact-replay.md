@@ -18,13 +18,9 @@ A normal HAR can support (1) and partially support (2); it does **not** prove (3
 
 ## Reference capture
 
-The worked example below comes from a 115-entry HAR with one query. The relevant entries are:
+The worked example comes from a 115-entry HAR with one query. Its original entry numbers are retained only in the appendix as historical evidence; they are not selection parameters. Cache state, support resources, and another run can shift every position.
 
-```text
-0, 21, 48, 57, 79, 83, 87, 104, 109, 112
-```
-
-A longer capture adds `cmd_nova` and a second query at entries 129 and 132. Keep the original HAR private and work on a local copy. Never commit raw captures, cookies, tokens, session IDs, plates, or result rows.
+Keep the original HAR private and work on a local copy. Never commit raw captures, cookies, tokens, session IDs, plates, or result rows.
 
 ## Phase 1 — Inventory before replaying
 
@@ -45,9 +41,9 @@ This separation prevents two common mistakes: treating a protection script as th
 
 Do not use HTTP status as the classifier. In the reference capture, challenge-related markers and valid application responses can coexist in HTTP 200 pages.
 
-## Phase 2 — Find the data by content, not by URL
+## Phase 2 — Find the data by content, not by URL or position
 
-Search response bodies for a unique value visible in the UI. In the example, the visible vehicle situation leads to entry 112:
+Search response bodies for a unique value visible in the UI. In the example, the visible vehicle situation leads to this request, wherever it appears in the capture:
 
 ```text
 POST /detran-portal-servicos/servlet/Connector
@@ -63,41 +59,51 @@ Inspect both sides of that entry:
 
 The URL is deliberately uninformative: every business action uses the same endpoint. The request body and the preceding state are the operation.
 
+List candidates by parsed content, then filter by the event identified from the response evidence:
+
+```bash
+python webscraping-expert/scripts/natural_for_ajax.py discover private-reference.har
+python webscraping-expert/scripts/natural_for_ajax.py discover private-reference.har \
+  --event cmd_consultar_placa
+```
+
+The reported entry number is only an address in this HAR. Never carry it into another capture as a selection rule.
+
 ## Phase 3 — Walk backward through provenance
 
 For every value in the final POST, record where the live browser obtained it. Do not copy the captured literal into the replica.
 
 | Final-request dependency | Evidence to find | Reference origin |
 |---|---|---|
-| Session ID | Entry HTML variable | `m_currentSessionId` at entry 0. |
-| Process ID | Entry HTML variable | `m_currentProcessId` at entry 0. |
-| `pageInitParam` | Entry HTML variable | Entry 0, then used by `NatLogon` initialization. |
+| Session ID | Entry HTML variable | `m_currentSessionId` in the entry document. |
+| Process ID | Entry HTML variable | `m_currentProcessId` in the entry document. |
+| `pageInitParam` | Entry HTML variable | Entry document, then used by `NatLogon` initialization. |
 | Model ID | Page initialization JavaScript | `C.initWithModelIdAndSessionIdAndProcessId(...)` on each page. |
 | Current page | Navigation / `nextPage` | `NatLogon` → `SIM1000X` → interceptor → `VES0009X`. |
 | `STAMP` | Previous `Connector` response | `INIT` for page initialization; latest response value afterward. |
 | `delta` | Page convention and previous response | `inittini` on page open in this case, then response `x` opcode. |
 | Cookies | Response `Set-Cookie` and cookie jar | Current live session only. |
-| Filter state | Earlier UI event | `cmd_filtro` at entry 109. |
+| Filter state | Earlier UI event | The preceding `cmd_filtro` request. |
 | Plate | User input | Business input, not a session secret. |
 
 The conclusion comes from this dependency graph: the final POST is not independently replayable. Saving only cookies still loses the model, stamp, delta, page, and filter state.
 
 ## Phase 4 — Reconstruct the minimum complete sequence
 
-Derive the sequence from provenance, then prove it by removing optional static/support traffic rather than by guessing.
+Derive the sequence from provenance, then prove it by removing optional static/support traffic rather than by guessing. Logical steps below describe order and purpose, not HAR positions.
 
-| Reference entry | Request | Required conclusion |
+| Logical step | Request | Required conclusion |
 |---:|---|---|
-| 0 | `GET easynat-app?op=S37` | Session, process, and initial parameter exist. |
-| 21 | `GET NatLogon.html` | Logon model is discoverable. |
-| 48 | `POST Connector`, initialize | `nextPage` selects `SIM1000X`. |
-| 57 | `GET SIM1000X.html` | Services model is discoverable. |
-| 79 | `POST Connector`, initialize | Services page is live. |
-| 83 | `POST Connector`, `on_interceptor` | `nextPage` selects `VES0009X`. |
-| 87 | `GET VES0009X.html` | Yard-page model is discoverable. |
-| 104 | `POST Connector`, initialize | Yard page is live. |
-| 109 | `POST Connector`, `cmd_filtro` | Plate filter is selected. |
-| 112 | `POST Connector`, `cmd_consultar_placa` | Result model confirms the requested plate. |
+| 1 | `GET easynat-app?op=S37` | Session, process, and initial parameter exist. |
+| 2 | `GET NatLogon.html` | Logon model is discoverable. |
+| 3 | `POST Connector`, initialize | `nextPage` selects `SIM1000X`. |
+| 4 | `GET SIM1000X.html` | Services model is discoverable. |
+| 5 | `POST Connector`, initialize | Services page is live. |
+| 6 | `POST Connector`, `on_interceptor` | `nextPage` selects `VES0009X`. |
+| 7 | `GET VES0009X.html` | Yard-page model is discoverable. |
+| 8 | `POST Connector`, initialize | Yard page is live. |
+| 9 | `POST Connector`, `cmd_filtro` | Plate filter is selected. |
+| 10 | `POST Connector`, `cmd_consultar_placa` | Result model confirms the requested plate. |
 
 That is nine priming calls plus one query. To prove reuse, continue in the same client:
 
@@ -207,11 +213,11 @@ At every live step, validate `nextPage`, `XML`, `STAMP`, `ERRORMESSAGE`, `xciErr
 
 ## Phase 8 — Diff reference and replica
 
-Pair requests by their position in the reconstructed sequence, not just by URL. All `Connector` calls share a URL.
+Pair requests by semantic role and logical sequence position, never by raw HAR index or URL alone. All `Connector` calls share a URL.
 
 The diff must check:
 
-- method, full URL, and sequence position;
+- method, full URL, and logical sequence position;
 - ordered header names;
 - every static header value, including browser brands and versions;
 - dynamic headers by provenance and shape rather than captured value;
@@ -221,12 +227,12 @@ The diff must check:
 - dynamic values by their live origin and internal consistency;
 - decoded page/model values and exact encoded serialization.
 
-Run a structural comparison when a replica HAR is available:
+Run `discover` independently on the reference and replica, select the semantically matching requests, and set the comparison indices from those results:
 
 ```bash
 python webscraping-expert/scripts/natural_for_ajax.py compare \
-  private-reference.har 112 \
-  private-replica.har 42
+  private-reference.har "$REFERENCE_ENTRY" \
+  private-replica.har "$REPLICA_ENTRY"
 ```
 
 The comparator treats session IDs, process IDs, stamps, deltas, page-init parameters, cookies, content length, and the business plate as dynamic slots. It still checks their relationships and requires all other observable values to match. Review the JSON verdict; do not ignore a mismatch because the query returned data.
@@ -258,10 +264,30 @@ The reverse-engineering task is complete only when the deliverable contains:
 - [ ] Offline full-response and delta-response tests.
 - [ ] A controlled first-query and second-query result.
 - [ ] A passing HAR-observable diff for every paired request, or an explicit unresolved mismatch.
+- [ ] Content-based selection that still works after support requests shift the HAR indices.
 - [ ] A clear statement separating HAR-observable fidelity from unproven wire fidelity.
 - [ ] Sanitized artifacts only; no raw HAR, cookies, tokens, personal inputs, or result rows in the PR.
 
 A valid business result with a failing request diff is **not** an exact replica.
+
+## Appendix — original capture cross-references
+
+Use these numbers only to locate evidence in the original 115-entry reference after deriving the flow semantically. They are not protocol constants, expected positions, or inputs for another HAR.
+
+| Logical step | Original HAR entry |
+|---:|---:|
+| 1 | 0 |
+| 2 | 21 |
+| 3 | 48 |
+| 4 | 57 |
+| 5 | 79 |
+| 6 | 83 |
+| 7 | 87 |
+| 8 | 104 |
+| 9 | 109 |
+| 10 | 112 |
+
+A longer capture adds `cmd_nova` and a second query at entries 129 and 132. The synthetic test suite inserts support traffic and shifts query positions to ensure discovery does not depend on these numbers.
 
 ## Related
 

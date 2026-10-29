@@ -6,8 +6,8 @@
 
 | File | Use |
 |---|---|
-| `natural_for_ajax.py` | Parse and exactly reserialize Natural for Ajax request streams from a HAR (`roundtrip`), or compare reference and replica entries with explicit dynamic slots (`compare`). Standard library only; emits sanitized structural JSON. |
-| `test_natural_for_ajax.py` | Synthetic unit tests for UTF-16 lengths, `encodeURIComponent`, round-trips, header order, static mismatches, and session provenance. |
+| `natural_for_ajax.py` | Discover Natural for Ajax POSTs by parsed content (`discover`), exactly reserialize their streams (`roundtrip`), or compare semantically paired reference and replica entries with explicit dynamic slots (`compare`). Standard library only; emits sanitized structural JSON. |
+| `test_natural_for_ajax.py` | Synthetic unit tests for UTF-16 lengths, `encodeURIComponent`, round-trips, header order, static mismatches, session provenance, and discovery after HAR indices shift. |
 
 Run the tests from the repository root:
 
@@ -15,4 +15,4 @@ Run the tests from the repository root:
 python webscraping-expert/scripts/test_natural_for_ajax.py
 ```
 
-Read `../discovery/har-exact-replay.md` before using the comparator. A passing HAR comparison does not certify TLS, HTTP framing, or wire order.
+Use `discover --event EVENT_NAME` to locate a semantically identified event in each HAR. Treat returned indices as capture-local addresses, never reusable constants. Read `../discovery/har-exact-replay.md` before using the comparator. A passing HAR comparison does not certify TLS, HTTP framing, or wire order.
