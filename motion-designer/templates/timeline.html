@@ -161,7 +161,9 @@ function Captions(parent,WORDS,{max=4,maxChars=24,fs=tall0()?60:48,hold=.4,hide=
   let shown=-1;
   return {box,chunks,seek(t,off=false){const k=off?-1:win.findIndex(([a,b])=>t>=a&&t<b);
     if(k!==shown){box.replaceChildren(...(k<0?[]:els[k]));shown=k;box.style.fontSize=fs+'px';   // the whole chunk, laid out once
-      for(let f=fs;k>=0&&box.scrollWidth>ZONES.CAP.w&&f>fs*.5;f-=2)box.style.fontSize=f+'px';}   // fit width once per chunk
+      // measure the real content width: a centred flex row overflows on BOTH sides, so scrollWidth under-reports
+      const cw=f=>[...box.children].reduce((a,c)=>a+c.offsetWidth,0)+(box.children.length-1)*.26*f;
+      for(let f=fs;k>=0&&cw(f)>ZONES.CAP.w-8&&f>fs*.5;f-=2)box.style.fontSize=f+'px';}   // fit width once per chunk
     if(k<0){plate.style.opacity=0;return;}const [,end]=win[k],fo=1-seg(t,end-.06,end);
     chunks[k].forEach((i,j)=>{const w=WORDS[i],sp=els[k][j],p=E.oB(seg(t,w.s-.02,w.s+.18)),on=t>=w.s-.02;
       const nxt=chunks[k][j+1],newest=on&&(nxt==null||t<WORDS[nxt].s-.02);
