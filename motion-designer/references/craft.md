@@ -198,6 +198,11 @@ Typical cost: ~1 credit per character (an 80 s script ≈ 1,300 credits) — tes
 **Always transcribe the result** (`qc_video.py`, Whisper) and diff it against the script before building the picture:
 a take can misread a sentence so its meaning flips (a misplaced comma, a word read as a different word) — often
 only the transcript catches it. Check pauses > 0.35 s inside sentences in the word timings.
+**Check the head of the take by itself** (transcribe its first 1.5 s and look at the energy per 100 ms): a clone can
+hallucinate a syllable before the first word — one take opened with ~0.8 s of "E aí, não sou eu" before "a resposta",
+alignment labelled it as a 0.9 s "E", and the video shipped with it until the user heard "enum" at the start. The fix
+that keeps the take intact: trim the head up to the first real word (15 ms fade), keep word 0 as a placeholder so
+every word index stays valid, hide it from the captions, shorten DUR.
 
 **Caption rules** (template `Captions()`, verified by `qc_captions.py` — every one of these was a visible bug):
 - A chunk's layout is **static**: all its words are laid out when it appears (unspoken ones at opacity 0) — never
